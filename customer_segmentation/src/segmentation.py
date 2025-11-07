@@ -70,7 +70,7 @@ class CustomerSegmentation:
         silhouette_scores = []
         
         for k in range(2, max_clusters + 1):
-            kmeans = KMeans(n_clusters=k, random_state=self.random_state, n_init=10)
+            kmeans = KMeans(n_clusters=k, random_state=self.random_state, n_init='auto')
             kmeans.fit(self.scaled_data)
             
             inertias.append(kmeans.inertia_)
@@ -103,7 +103,7 @@ class CustomerSegmentation:
         self.model = KMeans(
             n_clusters=self.n_clusters,
             random_state=self.random_state,
-            n_init=10
+            n_init='auto'
         )
         self.labels = self.model.fit_predict(self.scaled_data)
         self.data['Cluster'] = self.labels
