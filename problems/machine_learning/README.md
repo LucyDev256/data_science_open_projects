@@ -179,9 +179,10 @@ if __name__ == "__main__":
     # Evaluate models
     results = evaluate_models(models, X_test_scaled, y_test)
     
-    # Plot feature importance for best model
-    best_model = models['Random Forest']
-    plot_feature_importance(best_model, X.columns)
+    # Plot feature importance for best model (using original feature names)
+    best_model_original = RandomForestClassifier(random_state=42)
+    best_model_original.fit(X_train, y_train)
+    plot_feature_importance(best_model_original, X.columns)
     
     print("\nModel training and evaluation completed!")
 ```

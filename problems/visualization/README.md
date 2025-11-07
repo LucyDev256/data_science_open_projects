@@ -63,7 +63,7 @@ import seaborn as sns
 from datetime import datetime
 
 # Set style
-plt.style.use('seaborn-v0_8-darkgrid')
+plt.style.use('seaborn-v0_8')
 sns.set_palette("husl")
 
 def load_financial_data(filepath):

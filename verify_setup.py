@@ -6,7 +6,6 @@ This script checks that the repository structure is correct.
 
 import os
 import sys
-from pathlib import Path
 
 def verify_structure():
     """Verify that all required directories and files exist."""
