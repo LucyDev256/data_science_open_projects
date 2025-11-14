@@ -1,0 +1,75 @@
+# Spark Configuration for Healthcare Analytics
+
+# Dataproc Cluster Configuration
+cluster:
+  name: healthcare-spark-cluster
+  project_id: your-gcp-project-id  # CHANGE THIS
+  region: us-central1
+  zone: us-central1-a
+  
+  master:
+    machine_type: n1-standard-4
+    disk_type: pd-standard
+    disk_size_gb: 100
+    num_instances: 1
+  
+  workers:
+    machine_type: n1-standard-4
+    disk_type: pd-standard
+    disk_size_gb: 100
+    num_instances: 10
+    preemptibility: SPOT  # Use spot instances for cost savings
+    
+  # Auto-scaling
+  autoscaling:
+    enabled: true
+    min_workers: 2
+    max_workers: 20
+    cooldown_period: 120s
+
+# Spark Application Configuration
+spark:
+  # Executor settings
+  spark.executor.memory: 4g
+  spark.executor.cores: 2
+  spark.executor.instances: 10
+  
+  # Driver settings
+  spark.driver.memory: 4g
+  spark.driver.cores: 2
+  
+  # Shuffle and partitioning
+  spark.sql.shuffle.partitions: 200
+  spark.default.parallelism: 100
+  
+  # Memory management
+  spark.memory.fraction: 0.6
+  spark.memory.storageFraction: 0.5
+  
+  # SQL optimizations
+  spark.sql.adaptive.enabled: true
+  spark.sql.adaptive.coalescePartitions.enabled: true
+  spark.sql.autoBroadcastJoinThreshold: 10485760  # 10MB
+  
+  # Serialization
+  spark.serializer: org.apache.spark.serializer.KryoSerializer
+  spark.kryoserializer.buffer.max: 512m
+  
+  # Dynamic allocation
+  spark.dynamicAllocation.enabled: true
+  spark.dynamicAllocation.minExecutors: 2
+  spark.dynamicAllocation.maxExecutors: 20
+  spark.dynamicAllocation.initialExecutors: 5
+  
+  # Logging
+  spark.eventLog.enabled: true
+  spark.eventLog.dir: gs://your-bucket/spark-logs  # CHANGE THIS
+  
+  # BigQuery connector
+  spark.jars.packages: com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.32.2
+
+# Application Settings
+app:
+  name: HealthcareAnalytics
+  log_level: INFO
+  checkpoint_dir: gs://your-bucket/checkpoints  # CHANGE THIS

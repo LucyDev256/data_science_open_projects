@@ -1,0 +1,60 @@
+# Google Cloud Platform Configuration
+
+# Project Settings
+project:
+  id: your-gcp-project-id  # CHANGE THIS
+  region: us-central1
+  zone: us-central1-a
+
+# BigQuery Settings
+bigquery:
+  dataset_id: healthcare_analytics
+  
+  # Source tables (Synthea Public Data)
+  source:
+    project: bigquery-public-data
+    dataset: cms_synthetic_patient_data_omop
+    tables:
+      patients: person
+      encounters: visit_occurrence
+      conditions: condition_occurrence
+      procedures: procedure_occurrence
+      medications: drug_exposure
+      observations: observation
+      
+  # Destination tables (your project)
+  destination:
+    project: your-gcp-project-id  # CHANGE THIS
+    dataset: healthcare_processed
+    location: US
+
+# Cloud Storage Settings
+storage:
+  bucket: your-healthcare-bucket  # CHANGE THIS
+  
+  paths:
+    raw_data: gs://your-healthcare-bucket/data/raw
+    processed_data: gs://your-healthcare-bucket/data/processed
+    models: gs://your-healthcare-bucket/models
+    checkpoints: gs://your-healthcare-bucket/checkpoints
+    logs: gs://your-healthcare-bucket/logs
+    temp: gs://your-healthcare-bucket/temp
+
+# Dataproc Settings (referenced from spark_config.yaml)
+dataproc:
+  cluster_name: healthcare-spark-cluster
+  region: us-central1
+  
+# Service Account (for authentication)
+credentials:
+  service_account_path: null  # Set via environment variable GOOGLE_APPLICATION_CREDENTIALS
+  scopes:
+    - https://www.googleapis.com/auth/bigquery
+    - https://www.googleapis.com/auth/cloud-platform
+    - https://www.googleapis.com/auth/datastore
+
+# Data Sampling (for development/testing)
+sampling:
+  enabled: true  # Set to false for production
+  sample_size: 10000  # Number of patients to sample
+  random_seed: 42

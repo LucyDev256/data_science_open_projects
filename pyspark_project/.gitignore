@@ -1,0 +1,105 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data Files (DON'T commit large data)
+data/raw/**
+data/processed/**
+data/external/**
+*.csv
+*.parquet
+*.json
+*.avro
+*.orc
+
+# Keep directory structure
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+
+# Model Files
+models/*.pkl
+models/*.h5
+models/*.joblib
+models/*.model
+!models/.gitkeep
+
+# Outputs
+outputs/figures/**
+outputs/reports/**
+outputs/logs/**
+!outputs/figures/.gitkeep
+!outputs/reports/.gitkeep
+!outputs/logs/.gitkeep
+
+# Google Cloud Credentials (NEVER commit these!)
+*.json
+*-key.json
+*credentials*.json
+gcp-credentials.json
+service-account.json
+.gcp/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Documentation
+docs/_build/
+docs/.doctrees/
+
+# Temporary Files
+*.log
+*.tmp
+*.bak
