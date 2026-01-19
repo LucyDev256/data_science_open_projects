@@ -57,6 +57,20 @@ This implementation is based on the excellent tutorial from [taspinar/siml](http
 - NumPy
 - Jupyter Notebook
 
+## Installation
+
+Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Or install manually:
+
+```bash
+pip install numpy jupyter notebook
+```
+
 ## License
 
 See the main repository LICENSE file.

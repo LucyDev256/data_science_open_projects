@@ -1,0 +1,6 @@
+# Core dependencies
+numpy>=1.20.0
+
+# Jupyter notebook support
+jupyter>=1.0.0
+notebook>=6.4.0
