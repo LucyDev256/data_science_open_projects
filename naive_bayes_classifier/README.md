@@ -17,6 +17,11 @@ Naive Bayes is a probabilistic machine learning algorithm based on Bayes' theore
   - Mathematical theory behind Naive Bayes
   - Implementation from scratch
   - Step-by-step code walkthrough
+- **naive_bayes.py**: Complete, production-ready Python module with:
+  - Full NaiveBayes class implementation
+  - Comprehensive docstrings
+  - Example usage
+  - Batch classification support
 
 ## Key Concepts
 
@@ -45,7 +50,38 @@ New data points are classified by multiplying the conditional probabilities of e
 
 ## Usage
 
+### Using the Jupyter Notebook
 Open the Jupyter notebook `Naive_Bayes.ipynb` to follow the complete tutorial with theory and implementation.
+
+```bash
+jupyter notebook Naive_Bayes.ipynb
+```
+
+### Using the Python Module
+Import and use the classifier in your own code:
+
+```python
+from naive_bayes import NaiveBayes
+import numpy as np
+
+# Prepare your data
+X_train = np.array([...])  # Feature matrix
+Y_train = np.array([...])  # Labels
+
+# Train the classifier
+nb = NaiveBayes()
+nb.train(X_train, Y_train)
+
+# Make predictions
+prediction = nb.classify_single_elem(['feature1', 'feature2', ...])
+# Or classify multiple samples
+predictions = nb.classify(X_test)
+```
+
+Run the example:
+```bash
+python naive_bayes.py
+```
 
 ## Source
 
