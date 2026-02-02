@@ -215,11 +215,11 @@ def render_live_dashboard_tab():
             filtered_df = filtered_df.reset_index(drop=True)
             # Display as table - create clean DataFrame to avoid duplicate columns
             display_df = pd.DataFrame({
-                "event_name": filtered_df["event_name"].fillna("").tolist(),
-                "sport": filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name).fillna("").tolist(),
-                "time": filtered_df["datetime"].dt.strftime("%H:%M").fillna("").tolist(),
-                "venue": filtered_df["venue"].fillna("").tolist(),
-                "status": filtered_df["status"].fillna("").tolist()
+                "event_name": filtered_df["event_name"].astype(str).tolist(),
+                "sport": filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name).astype(str).tolist(),
+                "time": filtered_df["datetime"].dt.strftime("%H:%M").astype(str).tolist(),
+                "venue": filtered_df["venue"].astype(str).tolist(),
+                "status": filtered_df["status"].astype(str).tolist()
             })
             
             st.dataframe(
@@ -323,12 +323,12 @@ def render_schedule_explorer_tab():
         filtered_df = filtered_df.reset_index(drop=True)
         # Create clean DataFrame to avoid duplicate columns
         display_df = pd.DataFrame({
-            "event_name": filtered_df["event_name"].fillna("").tolist(),
-            "sport": filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name).fillna("").tolist(),
-            "date_time": filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M").fillna("").tolist(),
-            "venue": filtered_df["venue"].fillna("").tolist(),
-            "city": filtered_df["city"].fillna("").tolist(),
-            "status": filtered_df["status"].fillna("").tolist()
+            "event_name": filtered_df["event_name"].astype(str).tolist(),
+            "sport": filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name).astype(str).tolist(),
+            "date_time": filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M").astype(str).tolist(),
+            "venue": filtered_df["venue"].astype(str).tolist(),
+            "city": filtered_df["city"].astype(str).tolist(),
+            "status": filtered_df["status"].astype(str).tolist()
         })
         
         st.dataframe(
@@ -433,11 +433,11 @@ def render_country_tracker_tab():
                     filtered_country_events = filtered_country_events.reset_index(drop=True)
                     # Create clean DataFrame to avoid duplicate columns
                     display_df = pd.DataFrame({
-                        "event_name": filtered_country_events["event_name"].fillna("").tolist(),
-                        "sport": filtered_country_events["sport_code"].apply(OlympicsDataProcessor.get_sport_name).fillna("").tolist(),
-                        "date_time": filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M").fillna("").tolist(),
-                        "venue": filtered_country_events["venue"].fillna("").tolist(),
-                        "status": filtered_country_events["status"].fillna("").tolist()
+                        "event_name": filtered_country_events["event_name"].astype(str).tolist(),
+                        "sport": filtered_country_events["sport_code"].apply(OlympicsDataProcessor.get_sport_name).astype(str).tolist(),
+                        "date_time": filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M").astype(str).tolist(),
+                        "venue": filtered_country_events["venue"].astype(str).tolist(),
+                        "status": filtered_country_events["status"].astype(str).tolist()
                     })
                     
                     st.dataframe(
