@@ -211,16 +211,17 @@ def render_live_dashboard_tab():
             filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
         
         if not filtered_df.empty:
-            # Display as table
-            display_columns = ["event_name", "sport_code", "datetime", "venue", "status"]
-            display_df = filtered_df[display_columns].copy()
-            display_df["sport"] = display_df["sport_code"].apply(
-                OlympicsDataProcessor.get_sport_name
-            )
-            display_df["time"] = display_df["datetime"].dt.strftime("%H:%M")
+            # Display as table - create clean DataFrame to avoid duplicate columns
+            display_df = pd.DataFrame({
+                "event_name": filtered_df["event_name"],
+                "sport": filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name),
+                "time": filtered_df["datetime"].dt.strftime("%H:%M"),
+                "venue": filtered_df["venue"],
+                "status": filtered_df["status"]
+            })
             
             st.dataframe(
-                display_df[["event_name", "sport", "time", "venue", "status"]],
+                display_df,
                 use_container_width=True,
                 hide_index=True
             )
@@ -316,16 +317,18 @@ def render_schedule_explorer_tab():
     # Detailed table
     st.write("### 📋 Event Details")
     if not filtered_df.empty:
-        display_df = filtered_df[[
-            "event_name", "sport_code", "datetime", "venue", "city", "status"
-        ]].copy()
-        display_df["sport"] = display_df["sport_code"].apply(
-            OlympicsDataProcessor.get_sport_name
-        )
-        display_df["date_time"] = display_df["datetime"].dt.strftime("%Y-%m-%d %H:%M")
+        # Create clean DataFrame to avoid duplicate columns
+        display_df = pd.DataFrame({
+            "event_name": filtered_df["event_name"],
+            "sport": filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name),
+            "date_time": filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M"),
+            "venue": filtered_df["venue"],
+            "city": filtered_df["city"],
+            "status": filtered_df["status"]
+        })
         
         st.dataframe(
-            display_df[["event_name", "sport", "date_time", "venue", "city", "status"]],
+            display_df,
             use_container_width=True,
             hide_index=True
         )
@@ -422,16 +425,17 @@ def render_country_tracker_tab():
                         filtered_country_events = OlympicsDataProcessor.filter_by_sport(filtered_country_events, sport_code)
                 
                 if not filtered_country_events.empty:
-                    display_df = filtered_country_events[[
-                        "event_name", "sport_code", "datetime", "venue", "status"
-                    ]].copy()
-                    display_df["sport"] = display_df["sport_code"].apply(
-                        OlympicsDataProcessor.get_sport_name
-                    )
-                    display_df["date_time"] = display_df["datetime"].dt.strftime("%Y-%m-%d %H:%M")
+                    # Create clean DataFrame to avoid duplicate columns
+                    display_df = pd.DataFrame({
+                        "event_name": filtered_country_events["event_name"],
+                        "sport": filtered_country_events["sport_code"].apply(OlympicsDataProcessor.get_sport_name),
+                        "date_time": filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M"),
+                        "venue": filtered_country_events["venue"],
+                        "status": filtered_country_events["status"]
+                    })
                     
                     st.dataframe(
-                        display_df[["event_name", "sport", "date_time", "venue", "status"]],
+                        display_df,
                         use_container_width=True,
                         hide_index=True
                     )
