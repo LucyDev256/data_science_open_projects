@@ -107,6 +107,12 @@ class OlympicsDataProcessor:
         milan_tz = pytz.timezone("Europe/Rome")
         now = datetime.now(milan_tz)
         
+        # Make datetime timezone-aware (Milan timezone)
+        if df["datetime"].dt.tz is None:
+            df["datetime"] = df["datetime"].dt.tz_localize("UTC").dt.tz_convert(milan_tz)
+        else:
+            df["datetime"] = df["datetime"].dt.tz_convert(milan_tz)
+        
         # Time calculations
         df["time_until_event"] = df["datetime"] - now
         df["hours_until"] = df["time_until_event"].dt.total_seconds() / 3600
