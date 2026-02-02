@@ -8,6 +8,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+import pytz
 
 from src.api_client import MilanoCortina2026API
 from src.data_processor import OlympicsDataProcessor
@@ -286,8 +287,10 @@ def render_schedule_explorer_tab():
     filtered_df = all_df.copy()
     
     if date_range and len(date_range) == 2:
-        start_date = pd.Timestamp(date_range[0])
-        end_date = pd.Timestamp(date_range[1])
+        # Convert to timezone-aware timestamps (Europe/Rome)
+        milan_tz = pytz.timezone("Europe/Rome")
+        start_date = pd.Timestamp(date_range[0], tz=milan_tz)
+        end_date = pd.Timestamp(date_range[1], tz=milan_tz)
         filtered_df = OlympicsDataProcessor.filter_by_date_range(filtered_df, start_date, end_date)
     
     if selected_sport != "All":
