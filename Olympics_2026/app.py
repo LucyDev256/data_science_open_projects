@@ -211,6 +211,8 @@ def render_live_dashboard_tab():
             filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
         
         if not filtered_df.empty:
+            # Reset index for pandas 3.12 compatibility
+            filtered_df = filtered_df.reset_index(drop=True)
             # Display as table - create clean DataFrame to avoid duplicate columns
             display_df = pd.DataFrame({
                 "event_name": filtered_df["event_name"],
@@ -317,6 +319,8 @@ def render_schedule_explorer_tab():
     # Detailed table
     st.write("### 📋 Event Details")
     if not filtered_df.empty:
+        # Reset index for pandas 3.12 compatibility
+        filtered_df = filtered_df.reset_index(drop=True)
         # Create clean DataFrame to avoid duplicate columns
         display_df = pd.DataFrame({
             "event_name": filtered_df["event_name"],
@@ -425,6 +429,8 @@ def render_country_tracker_tab():
                         filtered_country_events = OlympicsDataProcessor.filter_by_sport(filtered_country_events, sport_code)
                 
                 if not filtered_country_events.empty:
+                    # Reset index for pandas 3.12 compatibility
+                    filtered_country_events = filtered_country_events.reset_index(drop=True)
                     # Create clean DataFrame to avoid duplicate columns
                     display_df = pd.DataFrame({
                         "event_name": filtered_country_events["event_name"],
