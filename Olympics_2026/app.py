@@ -233,6 +233,7 @@ def render_live_dashboard_tab():
     with col_right:
         st.write("### 📈 Status Distribution")
         fig = OlympicsVisualizations.create_events_by_status(today_df)
+        fig.update_layout(margin=dict(t=40, b=0, l=0, r=0))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 
@@ -271,10 +272,10 @@ def render_schedule_explorer_tab():
         )
     
     with col3:
-        venue_list = all_df["venue"].dropna().unique().tolist()
+        venue_list = sorted(list(set(str(v) for v in all_df["venue"].dropna().values)))
         selected_venue = st.selectbox(
             "Filter by Venue",
-            options=["All"] + sorted(venue_list),
+            options=["All"] + venue_list,
             key="schedule_venue_filter"
         )
     
