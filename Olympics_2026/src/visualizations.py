@@ -57,8 +57,9 @@ class OlympicsVisualizations:
         if df.empty:
             return OlympicsVisualizations._create_empty_chart("No events to display")
         
-        # Limit to max events
+        # Limit to max events and remove duplicate columns
         display_df = df.head(max_events).copy()
+        display_df = display_df.loc[:, ~display_df.columns.duplicated()]
         
         # Create color mapping
         status_colors = {
@@ -67,20 +68,20 @@ class OlympicsVisualizations:
             "Upcoming": OlympicsVisualizations.COLORS["upcoming"],
             "Scheduled": OlympicsVisualizations.COLORS["scheduled"]
         }
-        display_df["color"] = display_df["status"].map(status_colors)
+        display_df["color"] = display_df["status"].map(status_colors).fillna(OlympicsVisualizations.COLORS["scheduled"])
         
-        # Create hover text
-        event_names = display_df["event_name"].fillna("N/A") if "event_name" in display_df.columns else pd.Series(["N/A"] * len(display_df))
-        sport_names = display_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name) if "sport_code" in display_df.columns else pd.Series(["N/A"] * len(display_df))
-        venues = display_df["venue"].fillna("N/A") if "venue" in display_df.columns else pd.Series(["N/A"] * len(display_df))
-        cities = display_df["city"].fillna("N/A") if "city" in display_df.columns else pd.Series(["N/A"] * len(display_df))
+        # Create hover text safely - avoid string concatenation with Series that have duplicate indices
+        event_names = display_df["event_name"].fillna("N/A").astype(str) if "event_name" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
+        sport_codes = display_df["sport_code"] if "sport_code" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
+        sport_names = sport_codes.apply(OlympicsDataProcessor.get_sport_name).astype(str)
+        venues = display_df["venue"].fillna("N/A").astype(str) if "venue" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
+        cities = display_df["city"].fillna("N/A").astype(str) if "city" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
         
-        display_df["hover_text"] = (
-            event_names + "<br>" +
-            "<b>Sport:</b> " + sport_names + "<br>" +
-            "<b>Venue:</b> " + venues + "<br>" +
-            "<b>City:</b> " + cities
-        )
+        # Build hover text using list comprehension to avoid pandas alignment issues
+        display_df["hover_text"] = [
+            f"{name}<br><b>Sport:</b> {sport}<br><b>Venue:</b> {venue}<br><b>City:</b> {city}"
+            for name, sport, venue, city in zip(event_names, sport_names, venues, cities)
+        ]
         
         fig = go.Figure()
         

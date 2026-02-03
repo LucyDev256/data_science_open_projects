@@ -212,16 +212,17 @@ def render_live_dashboard_tab():
             filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
         
         if not filtered_df.empty:
-            # Reset index for pandas 3.12 compatibility
+            # Reset index and ensure no duplicate columns
             filtered_df = filtered_df.reset_index(drop=True)
-            # Display as table - create clean DataFrame to avoid duplicate columns
-            # Safely extract column data with error handling
-            event_names = filtered_df["event_name"].astype(str).tolist() if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
+            
+            # Display as table - create clean DataFrame with safe extraction
+            event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
             sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
             sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
-            times = filtered_df["datetime"].dt.strftime("%H:%M").tolist() if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
-            venues = filtered_df["venue"].astype(str).tolist() if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
-            statuses = filtered_df["status"].astype(str).tolist() if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            times = list(filtered_df["datetime"].dt.strftime("%H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            venues = list(filtered_df["venue"].astype(str)) if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
             
             display_df = pd.DataFrame({
                 "event_name": event_names,
@@ -233,7 +234,7 @@ def render_live_dashboard_tab():
             
             st.dataframe(
                 display_df,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
         else:
@@ -243,7 +244,7 @@ def render_live_dashboard_tab():
         st.write("### 📈 Status Distribution")
         fig = OlympicsVisualizations.create_events_by_status(today_df)
         fig.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
 
 def render_schedule_explorer_tab():
@@ -333,7 +334,7 @@ def render_schedule_explorer_tab():
         st.write(f"### 📊 Events Timeline ({len(filtered_df)} events)")
         if not filtered_df.empty:
             fig = OlympicsVisualizations.create_events_timeline(filtered_df, max_events=30)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             st.info("No events match the selected filters")
     
@@ -341,22 +342,23 @@ def render_schedule_explorer_tab():
         st.write("### 📍 Distribution")
         if not filtered_df.empty:
             fig = OlympicsVisualizations.create_sports_distribution(filtered_df)
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
     
     # Detailed table
     st.write("### 📋 Event Details")
     if not filtered_df.empty:
-        # Reset index for pandas 3.12 compatibility
+        # Reset index and ensure no duplicate columns
         filtered_df = filtered_df.reset_index(drop=True)
-        # Create clean DataFrame to avoid duplicate columns
-        # Safely extract column data with error handling
-        event_names = filtered_df["event_name"].astype(str).tolist() if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
+        
+        # Create clean DataFrame with safe extraction
+        event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
         sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
         sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
-        date_times = filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M").tolist() if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
-        venues = filtered_df["venue"].astype(str).tolist() if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
-        cities = filtered_df["city"].astype(str).tolist() if "city" in filtered_df.columns else ["N/A"] * len(filtered_df)
-        statuses = filtered_df["status"].astype(str).tolist() if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        date_times = list(filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        venues = list(filtered_df["venue"].astype(str)) if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        cities = list(filtered_df["city"].astype(str)) if "city" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
         
         display_df = pd.DataFrame({
             "event_name": event_names,
@@ -369,7 +371,7 @@ def render_schedule_explorer_tab():
         
         st.dataframe(
             display_df,
-            use_container_width=True,
+            width="stretch",
             hide_index=True
         )
         
@@ -482,16 +484,17 @@ def render_country_tracker_tab():
                         filtered_country_events = OlympicsDataProcessor.filter_by_sport(filtered_country_events, sport_code)
                 
                 if not filtered_country_events.empty:
-                    # Reset index for pandas 3.12 compatibility
+                    # Reset index and ensure no duplicate columns
                     filtered_country_events = filtered_country_events.reset_index(drop=True)
-                    # Create clean DataFrame to avoid duplicate columns
-                    # Safely extract column data with error handling
-                    event_names = filtered_country_events["event_name"].astype(str).tolist() if "event_name" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    filtered_country_events = filtered_country_events.loc[:, ~filtered_country_events.columns.duplicated()]
+                    
+                    # Create clean DataFrame with safe extraction
+                    event_names = list(filtered_country_events["event_name"].astype(str)) if "event_name" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
                     sport_codes = filtered_country_events["sport_code"] if "sport_code" in filtered_country_events.columns else pd.Series(["N/A"] * len(filtered_country_events))
                     sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
-                    date_times = filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M").tolist() if "datetime" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
-                    venues = filtered_country_events["venue"].astype(str).tolist() if "venue" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
-                    statuses = filtered_country_events["status"].astype(str).tolist() if "status" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    date_times = list(filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M")) if "datetime" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    venues = list(filtered_country_events["venue"].astype(str)) if "venue" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    statuses = list(filtered_country_events["status"].astype(str)) if "status" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
                     
                     display_df = pd.DataFrame({
                         "event_name": event_names,
@@ -503,14 +506,14 @@ def render_country_tracker_tab():
                     
                     st.dataframe(
                         display_df,
-                        use_container_width=True,
+                        width="stretch",
                         hide_index=True
                     )
             
             with col_right:
                 st.write("### ⛷️ Sports Breakdown")
                 fig = OlympicsVisualizations.create_sports_distribution(country_events)
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
         else:
             st.info(f"No events found for {selected_country}")
 
@@ -540,19 +543,19 @@ def render_analytics_tab():
     
     with tab1:
         fig = OlympicsVisualizations.create_sports_distribution(all_df)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with tab2:
         fig = OlympicsVisualizations.create_venue_distribution(all_df)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with tab3:
         fig = OlympicsVisualizations.create_hourly_distribution(all_df)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     
     with tab4:
         fig = OlympicsVisualizations.create_events_by_status(all_df)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 def render_sidebar():
