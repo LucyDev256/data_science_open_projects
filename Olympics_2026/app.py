@@ -215,12 +215,20 @@ def render_live_dashboard_tab():
             # Reset index for pandas 3.12 compatibility
             filtered_df = filtered_df.reset_index(drop=True)
             # Display as table - create clean DataFrame to avoid duplicate columns
+            # Safely extract column data with error handling
+            event_names = filtered_df["event_name"].astype(str).tolist() if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
+            sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
+            times = filtered_df["datetime"].dt.strftime("%H:%M").tolist() if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            venues = filtered_df["venue"].astype(str).tolist() if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            statuses = filtered_df["status"].astype(str).tolist() if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            
             display_df = pd.DataFrame({
-                "event_name": [str(x) for x in filtered_df["event_name"].values],
-                "sport": [str(x) for x in filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name).values],
-                "time": [str(x) for x in filtered_df["datetime"].dt.strftime("%H:%M").values],
-                "venue": [str(x) for x in filtered_df["venue"].values],
-                "status": [str(x) for x in filtered_df["status"].values]
+                "event_name": event_names,
+                "sport": sports,
+                "time": times,
+                "venue": venues,
+                "status": statuses
             })
             
             st.dataframe(
@@ -263,8 +271,8 @@ def render_schedule_explorer_tab():
     with col2:
         sports_response = fetch_all_sports()
         sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
-        sport_codes = [s.get("code") for s in sports_list if s.get("code")]
-        sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes]
+        sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
+        sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
         
         selected_sport = st.selectbox(
             "Filter by Sport",
@@ -273,7 +281,9 @@ def render_schedule_explorer_tab():
         )
     
     with col3:
-        venue_list = sorted(list(set(str(v) for v in all_df["venue"].dropna().values)))
+        venue_list = []
+        if "venue" in all_df.columns:
+            venue_list = sorted(list(set(str(v) for v in all_df["venue"].dropna() if v and str(v).strip())))
         selected_venue = st.selectbox(
             "Filter by Venue",
             options=["All"] + venue_list,
@@ -293,8 +303,21 @@ def render_schedule_explorer_tab():
         end_date = pd.Timestamp(date_range[1], tz=milan_tz)
         filtered_df = OlympicsDataProcessor.filter_by_date_range(filtered_df, start_date, end_date)
     
-    if selected_sport != "All":
-        sport_code = [k for k, v in {s.get("code"): OlympicsDataProcessor.get_sport_name(s.get("code")) for s in sports_list}.items() if v == selected_sport][0] if sports_list else None
+    if selected_sport != "All" and sports_list:
+        # Build sport code mapping safely
+        sport_code_map = {}
+        for s in sports_list:
+            if isinstance(s, dict) and s.get("code"):
+                code = s.get("code")
+                sport_code_map[code] = OlympicsDataProcessor.get_sport_name(code)
+        
+        # Find matching sport code
+        sport_code = None
+        for code, name in sport_code_map.items():
+            if name == selected_sport:
+                sport_code = code
+                break
+        
         if sport_code:
             filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, sport_code)
     
@@ -326,13 +349,22 @@ def render_schedule_explorer_tab():
         # Reset index for pandas 3.12 compatibility
         filtered_df = filtered_df.reset_index(drop=True)
         # Create clean DataFrame to avoid duplicate columns
+        # Safely extract column data with error handling
+        event_names = filtered_df["event_name"].astype(str).tolist() if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
+        sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
+        date_times = filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M").tolist() if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        venues = filtered_df["venue"].astype(str).tolist() if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        cities = filtered_df["city"].astype(str).tolist() if "city" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        statuses = filtered_df["status"].astype(str).tolist() if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        
         display_df = pd.DataFrame({
-            "event_name": [str(x) for x in filtered_df["event_name"].values],
-            "sport": [str(x) for x in filtered_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name).values],
-            "date_time": [str(x) for x in filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M").values],
-            "venue": [str(x) for x in filtered_df["venue"].values],
-            "city": [str(x) for x in filtered_df["city"].values],
-            "status": [str(x) for x in filtered_df["status"].values]
+            "event_name": event_names,
+            "sport": sports,
+            "date_time": date_times,
+            "venue": venues,
+            "city": cities,
+            "status": statuses
         })
         
         st.dataframe(
@@ -366,13 +398,17 @@ def render_country_tracker_tab():
     # Get unique countries
     countries_set = set()
     if "teams" in all_df.columns:
-        for teams in all_df["teams"]:
+        for idx, teams in enumerate(all_df["teams"]):
+            if pd.isna(teams):
+                continue
             if isinstance(teams, list):
                 for team in teams:
-                    if isinstance(team, dict) and "code" in team:
+                    if isinstance(team, dict) and "code" in team and team["code"]:
                         countries_set.add(team["code"])
+            elif isinstance(teams, dict) and "code" in teams and teams["code"]:
+                countries_set.add(teams["code"])
     
-    countries_list = sorted(list(countries_set))
+    countries_list = sorted(list(countries_set)) if countries_set else ["USA", "CAN", "GBR"]  # Fallback
     
     col1, col2 = st.columns([1, 3])
     
@@ -417,8 +453,8 @@ def render_country_tracker_tab():
                 # Filter by sport for this country
                 sports_response = fetch_all_sports()
                 sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
-                sport_codes = [s.get("code") for s in sports_list if s.get("code")]
-                sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes]
+                sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
+                sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
                 
                 selected_sport = st.selectbox(
                     "Filter by Sport",
@@ -427,8 +463,21 @@ def render_country_tracker_tab():
                 )
                 
                 filtered_country_events = country_events.copy()
-                if selected_sport != "All":
-                    sport_code = [k for k, v in {s.get("code"): OlympicsDataProcessor.get_sport_name(s.get("code")) for s in sports_list}.items() if v == selected_sport][0] if sports_list else None
+                if selected_sport != "All" and sports_list:
+                    # Build sport code mapping safely
+                    sport_code_map = {}
+                    for s in sports_list:
+                        if isinstance(s, dict) and s.get("code"):
+                            code = s.get("code")
+                            sport_code_map[code] = OlympicsDataProcessor.get_sport_name(code)
+                    
+                    # Find matching sport code
+                    sport_code = None
+                    for code, name in sport_code_map.items():
+                        if name == selected_sport:
+                            sport_code = code
+                            break
+                    
                     if sport_code:
                         filtered_country_events = OlympicsDataProcessor.filter_by_sport(filtered_country_events, sport_code)
                 
@@ -436,12 +485,20 @@ def render_country_tracker_tab():
                     # Reset index for pandas 3.12 compatibility
                     filtered_country_events = filtered_country_events.reset_index(drop=True)
                     # Create clean DataFrame to avoid duplicate columns
+                    # Safely extract column data with error handling
+                    event_names = filtered_country_events["event_name"].astype(str).tolist() if "event_name" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    sport_codes = filtered_country_events["sport_code"] if "sport_code" in filtered_country_events.columns else pd.Series(["N/A"] * len(filtered_country_events))
+                    sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
+                    date_times = filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M").tolist() if "datetime" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    venues = filtered_country_events["venue"].astype(str).tolist() if "venue" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    statuses = filtered_country_events["status"].astype(str).tolist() if "status" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    
                     display_df = pd.DataFrame({
-                        "event_name": [str(x) for x in filtered_country_events["event_name"].values],
-                        "sport": [str(x) for x in filtered_country_events["sport_code"].apply(OlympicsDataProcessor.get_sport_name).values],
-                        "date_time": [str(x) for x in filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M").values],
-                        "venue": [str(x) for x in filtered_country_events["venue"].values],
-                        "status": [str(x) for x in filtered_country_events["status"].values]
+                        "event_name": event_names,
+                        "sport": sports,
+                        "date_time": date_times,
+                        "venue": venues,
+                        "status": statuses
                     })
                     
                     st.dataframe(
@@ -513,8 +570,8 @@ def render_sidebar():
         
         refresh_interval = st.slider(
             "Refresh interval (minutes)",
-            min_value=5,
-            max_value=30,
+            min_value=1840,
+            max_value=2000,
             value=st.session_state.get("refresh_interval", 10),
             key="refresh_slider"
         )
@@ -551,7 +608,7 @@ def render_sidebar():
         st.write(
             "Milano-Cortina 2026 Winter Olympics Live Dashboard\n\n"
             "📊 Data Source: RapidAPI Olympics API\n\n"
-            "🔄 Updates: Every 10 minutes\n\n"
+            "🔄 Updates: Every 1 day\n\n"
             "🏠 [GitHub](https://github.com/lucydev256/olympics-2026)"
         )
 

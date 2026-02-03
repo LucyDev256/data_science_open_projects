@@ -148,18 +148,26 @@ class OlympicsDataProcessor:
             return df
         
         # Check if country appears in teams
+        if df["teams"].isna().all():
+            return pd.DataFrame()
+        
         mask = df["teams"].apply(
-            lambda x: isinstance(x, list) and any(
-                team.get("code") == country_code for team in x if isinstance(team, dict)
-            )
+            lambda x: (
+                pd.notna(x) and
+                isinstance(x, list) and
+                any(
+                    isinstance(team, dict) and team.get("code") == country_code 
+                    for team in x
+                )
+            ) if pd.notna(x) else False
         )
         return df[mask].copy()
     
     @staticmethod
     def filter_by_sport(df: pd.DataFrame, sport_code: str) -> pd.DataFrame:
         """Filter events by sport code"""
-        if df.empty:
-            return df
+        if df.empty or "sport_code" not in df.columns:
+            return pd.DataFrame()
         return df[df["sport_code"] == sport_code].copy()
     
     @staticmethod
@@ -169,21 +177,22 @@ class OlympicsDataProcessor:
         date_to: Optional[datetime] = None
     ) -> pd.DataFrame:
         """Filter events by date range"""
-        if df.empty:
-            return df
+        if df.empty or "datetime" not in df.columns:
+            return pd.DataFrame()
         
+        result = df.copy()
         if date_from:
-            df = df[df["datetime"] >= date_from]
+            result = result[result["datetime"] >= date_from]
         if date_to:
-            df = df[df["datetime"] <= date_to]
+            result = result[result["datetime"] <= date_to]
         
-        return df.copy()
+        return result
     
     @staticmethod
     def filter_by_status(df: pd.DataFrame, status: str) -> pd.DataFrame:
         """Filter events by status (Completed, Upcoming, Today, Scheduled)"""
-        if df.empty:
-            return df
+        if df.empty or "status" not in df.columns:
+            return pd.DataFrame()
         return df[df["status"] == status].copy()
     
     @staticmethod
@@ -254,14 +263,14 @@ class OlympicsDataProcessor:
     @staticmethod
     def get_upcoming_events(df: pd.DataFrame, hours: int = 24) -> pd.DataFrame:
         """Get events happening in the next N hours"""
-        if df.empty:
-            return df
+        if df.empty or "hours_until" not in df.columns:
+            return pd.DataFrame()
         return df[df["hours_until"] <= hours].copy()
     
     @staticmethod
     def get_medal_events_count_by_sport(df: pd.DataFrame) -> pd.DataFrame:
         """Get count of medal events by sport"""
-        if df.empty:
+        if df.empty or "sport_code" not in df.columns:
             return pd.DataFrame()
         
         counts = df.groupby("sport_code").size().reset_index(name="count")
@@ -277,7 +286,7 @@ class OlympicsDataProcessor:
     @staticmethod
     def get_events_by_venue(df: pd.DataFrame) -> pd.DataFrame:
         """Get event count by venue"""
-        if df.empty:
+        if df.empty or "venue" not in df.columns or "city" not in df.columns:
             return pd.DataFrame()
         
         venue_counts = df.groupby(["venue", "city"]).size().reset_index(name="count")
@@ -287,6 +296,10 @@ class OlympicsDataProcessor:
     def get_timeline_data(df: pd.DataFrame) -> pd.DataFrame:
         """Prepare data for timeline visualization"""
         if df.empty:
+            return pd.DataFrame()
+        
+        required_cols = ["datetime", "event_name", "sport_code", "status"]
+        if not all(col in df.columns for col in required_cols):
             return pd.DataFrame()
         
         timeline_df = df[["datetime", "event_name", "sport_code", "status"]].copy()

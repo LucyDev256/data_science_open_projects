@@ -70,11 +70,16 @@ class OlympicsVisualizations:
         display_df["color"] = display_df["status"].map(status_colors)
         
         # Create hover text
+        event_names = display_df["event_name"].fillna("N/A") if "event_name" in display_df.columns else pd.Series(["N/A"] * len(display_df))
+        sport_names = display_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name) if "sport_code" in display_df.columns else pd.Series(["N/A"] * len(display_df))
+        venues = display_df["venue"].fillna("N/A") if "venue" in display_df.columns else pd.Series(["N/A"] * len(display_df))
+        cities = display_df["city"].fillna("N/A") if "city" in display_df.columns else pd.Series(["N/A"] * len(display_df))
+        
         display_df["hover_text"] = (
-            display_df["event_name"] + "<br>" +
-            "<b>Sport:</b> " + display_df["sport_code"].apply(OlympicsDataProcessor.get_sport_name) + "<br>" +
-            "<b>Venue:</b> " + display_df["venue"].fillna("N/A") + "<br>" +
-            "<b>City:</b> " + display_df["city"].fillna("N/A")
+            event_names + "<br>" +
+            "<b>Sport:</b> " + sport_names + "<br>" +
+            "<b>Venue:</b> " + venues + "<br>" +
+            "<b>City:</b> " + cities
         )
         
         fig = go.Figure()
@@ -120,10 +125,13 @@ class OlympicsVisualizations:
         Returns:
             Plotly figure object
         """
-        if df.empty:
+        if df.empty or "sport_code" not in df.columns:
             return OlympicsVisualizations._create_empty_chart("No data available")
         
         sport_counts = OlympicsDataProcessor.get_medal_events_count_by_sport(df)
+        
+        if sport_counts.empty:
+            return OlympicsVisualizations._create_empty_chart("No sports data")
         
         colors = [
             OlympicsVisualizations.SPORT_COLORS.get(code, "#95A5A6")
@@ -259,10 +267,14 @@ class OlympicsVisualizations:
     @staticmethod
     def create_hourly_distribution(df: pd.DataFrame) -> go.Figure:
         """Create chart showing events distribution by hour of day"""
-        if df.empty:
+        if df.empty or "datetime" not in df.columns:
             return OlympicsVisualizations._create_empty_chart("No hourly data")
         
         df_copy = df.copy()
+        # Check datetime is valid
+        if not pd.api.types.is_datetime64_any_dtype(df_copy["datetime"]):
+            return OlympicsVisualizations._create_empty_chart("Invalid datetime data")
+        
         df_copy["hour"] = df_copy["datetime"].dt.hour
         hourly_dist = df_copy.groupby("hour").size().reset_index(name="count")
         
@@ -328,10 +340,14 @@ class OlympicsVisualizations:
         countries_set = set()
         if "teams" in df.columns:
             for teams in df["teams"]:
+                if pd.isna(teams):
+                    continue
                 if isinstance(teams, list):
                     for team in teams:
-                        if isinstance(team, dict) and "code" in team:
+                        if isinstance(team, dict) and "code" in team and team["code"]:
                             countries_set.add(team["code"])
+                elif isinstance(teams, dict) and "code" in teams and teams["code"]:
+                    countries_set.add(teams["code"])
         
         return {
             "total_events": str(total),
