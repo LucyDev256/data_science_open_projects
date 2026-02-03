@@ -401,7 +401,10 @@ def render_country_tracker_tab():
     countries_set = set()
     if "teams" in all_df.columns:
         for idx, teams in enumerate(all_df["teams"]):
-            if pd.isna(teams):
+            # Skip None, NaN, or empty values - handle arrays safely
+            if teams is None or (isinstance(teams, float) and pd.isna(teams)):
+                continue
+            if not teams:  # Skip empty lists/dicts
                 continue
             if isinstance(teams, list):
                 for team in teams:
