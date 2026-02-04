@@ -57,8 +57,9 @@ class OlympicsVisualizations:
         if df.empty:
             return OlympicsVisualizations._create_empty_chart("No events to display")
         
-        # Limit to max events and remove duplicate columns
-        display_df = df.head(max_events).copy()
+        # Sort by datetime ascending (earliest events first) and limit to max events
+        df_sorted = df.sort_values("datetime", ascending=True) if "datetime" in df.columns else df
+        display_df = df_sorted.head(max_events).copy()
         display_df = display_df.loc[:, ~display_df.columns.duplicated()]
         
         # Create color mapping

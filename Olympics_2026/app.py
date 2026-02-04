@@ -205,15 +205,15 @@ def render_live_dashboard_tab():
     """Render Live Results Dashboard tab"""
     st.subheader("🏆 Live Results Dashboard")
     
-    # Fetch today's events
-    today_response = fetch_today_events()
-    today_df = OlympicsDataProcessor.parse_events_response(today_response)
+    # Fetch all events (not just today's)
+    all_response = fetch_all_events()
+    all_df = OlympicsDataProcessor.parse_events_response(all_response)
     
-    if today_df.empty:
-        st.info("No events scheduled for today")
+    if all_df.empty:
+        st.info("No events data available")
         return
     
-    render_stats_cards(today_df)
+    render_stats_cards(all_df)
     st.markdown("---")
     
     # Main events display
@@ -222,11 +222,11 @@ def render_live_dashboard_tab():
     # Filter by status
     status_filter = st.selectbox(
         "Filter by Status:",
-        options=["All", "Upcoming", "Today", "Completed", "Scheduled"],
+        options=["All", "Today", "Completed", "Scheduled"],
         key="today_status_filter"
     )
     
-    filtered_df = today_df.copy()
+    filtered_df = all_df.copy()
     if status_filter != "All":
         filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
     
@@ -459,10 +459,11 @@ def render_country_tracker_tab():
             with col1:
                 st.metric("📊 Total Events", len(country_events))
             with col2:
-                upcoming = len(country_events[country_events["status"].isin(["Upcoming", "Today"])])
+                # Count events that haven't happened yet (status not Completed)
+                upcoming = len(country_events[country_events["status"] != "Completed"])
                 st.metric("🔴 Upcoming", upcoming)
             with col3:
-                sports_count = country_events["sport_code"].nunique()
+                sports_count = country_events["sport_code"].nunique() if "sport_code" in country_events.columns else 0
                 st.metric("⛷️ Sports Involved", sports_count)
             
             st.markdown("---")
