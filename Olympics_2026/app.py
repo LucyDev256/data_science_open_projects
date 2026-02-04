@@ -215,7 +215,7 @@ def render_live_dashboard_tab():
     
     # Filter bar
     st.markdown("### 🔍 Filters")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         # Date range filter
@@ -247,41 +247,8 @@ def render_live_dashboard_tab():
             key="live_sport_filter"
         )
     
-    with col3:
-        # Country filter
-        countries_response = fetch_all_countries()
-        countries_list = countries_response.get("countries", []) if countries_response.get("success") else []
-        
-        countries_set = set()
-        if countries_list:
-            for c in countries_list:
-                if isinstance(c, dict) and c.get("code"):
-                    countries_set.add(c["code"])
-                elif isinstance(c, str):
-                    countries_set.add(c)
-        
-        # Fallback: extract from teams
-        if not countries_set and "teams" in all_df.columns:
-            for teams in all_df["teams"]:
-                if teams is None or (isinstance(teams, float) and pd.isna(teams)):
-                    continue
-                if isinstance(teams, list):
-                    for team in teams:
-                        if isinstance(team, dict):
-                            code = team.get("code") or team.get("country_code")
-                            if code:
-                                countries_set.add(code.upper())
-        
-        if not countries_set:
-            countries_set = {"USA", "CAN", "ITA", "GER", "FRA", "JPN", "CHN", "KOR"}
-        
-        countries_list_sorted = sorted(list(countries_set))
-        
-        selected_country = st.selectbox(
-            "Country",
-            options=["All"] + countries_list_sorted,
-            key="live_country_filter"
-        )
+    # Note about country filtering
+    st.info("💡 **Tip:** All Olympic events are shown. The API data structure doesn't support reliable country-specific filtering for individual sports (each event lists only immediate participants, not all countries in the sport).")
     
     st.markdown("---")
     
@@ -311,10 +278,6 @@ def render_live_dashboard_tab():
         
         if sport_code:
             filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, sport_code)
-    
-    # Country filter
-    if selected_country != "All":
-        filtered_df = OlympicsDataProcessor.filter_by_country(filtered_df, selected_country)
     
     # Remove events with None venue
     if "venue_full" in filtered_df.columns:
