@@ -246,7 +246,9 @@ class OlympicsDataProcessor:
         if date_from:
             result = result[result["datetime"] >= date_from]
         if date_to:
-            result = result[result["datetime"] <= date_to]
+            # Include entire end date by adding 23:59:59
+            end_of_day = date_to + pd.Timedelta(hours=23, minutes=59, seconds=59)
+            result = result[result["datetime"] <= end_of_day]
         
         return result
     

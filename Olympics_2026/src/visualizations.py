@@ -347,24 +347,34 @@ class OlympicsVisualizations:
             }
         
         total = len(df)
-        upcoming = len(df[df["status"].isin(["Upcoming", "Today"])])
-        sports = df["sport_code"].nunique()
+        upcoming = len(df[df["status"].isin(["Upcoming", "Today", "Scheduled"]) if "status" in df.columns else []])
         
-        # Count unique countries
+        # Count unique sports from sport_code column
+        sports = 0
+        if "sport_code" in df.columns:
+            sports = df["sport_code"].dropna().nunique()
+        
+        # Count unique countries from teams column
         countries_set = set()
         if "teams" in df.columns:
             for teams in df["teams"]:
-                # Skip None, NaN, or empty values - handle arrays safely
+                # Skip None, NaN, or empty values
                 if teams is None or (isinstance(teams, float) and pd.isna(teams)):
                     continue
-                if not teams:  # Skip empty lists/dicts
+                if not teams:
                     continue
+                # Handle list of teams
                 if isinstance(teams, list):
                     for team in teams:
-                        if isinstance(team, dict) and "code" in team and team["code"]:
-                            countries_set.add(team["code"])
-                elif isinstance(teams, dict) and "code" in teams and teams["code"]:
-                    countries_set.add(teams["code"])
+                        if isinstance(team, dict):
+                            code = team.get("code") or team.get("country_code")
+                            if code:
+                                countries_set.add(code.upper())
+                # Handle single team dict
+                elif isinstance(teams, dict):
+                    code = teams.get("code") or teams.get("country_code")
+                    if code:
+                        countries_set.add(code.upper())
         
         return {
             "total_events": str(total),

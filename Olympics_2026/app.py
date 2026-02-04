@@ -192,7 +192,7 @@ def render_stats_cards(df: pd.DataFrame):
         st.metric("📊 Total Events", stats["total_events"])
     
     with col2:
-        st.metric("🔴 Upcoming/Today", stats["upcoming_events"])
+        st.metric("🔴 Today", stats["upcoming_events"])
     
     with col3:
         st.metric("⛷️ Sports", stats["sports_count"])
@@ -262,7 +262,7 @@ def render_live_dashboard_tab():
         display_df = pd.DataFrame({
             "event_name": event_names,
             "sport": sports,
-            "date_time": times,
+            "date_time (CET)": times,
             "venue": venues,
             "status": statuses
         })
@@ -294,7 +294,7 @@ def render_schedule_explorer_tab():
     with col1:
         date_range = st.date_input(
             "Select Date Range",
-            value=(datetime.now().date(), datetime.now().date() + timedelta(days=7)),
+            value=(datetime(2026, 2, 6).date(), datetime(2026, 2, 22).date()),
             key="schedule_date_range"
         )
     
