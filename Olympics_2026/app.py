@@ -978,28 +978,37 @@ def main():
     render_sidebar()
     
     # Main tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🏏 Live Dashboard",
-        "🏅 Podium",
-        "📅 Schedule",
-        "🌍 Country Tracker",
-        "📊 Analytics"
-    ])
+    # Only Live Dashboard active - other tabs commented out for now
+    tab1 = st.tabs([
+        "🏟️ Live Dashboard"
+    ])[0]
+    
+    # Podium tab - commented out for now
+    # tab2, tab3, tab4, tab5 = st.tabs([
+    #     "🏅 Podium",
+    #     "📅 Schedule",
+    #     "🌍 Country Tracker",
+    #     "📊 Analytics"
+    # ])
     
     with tab1:
         render_live_dashboard_tab()
     
-    with tab2:
-        render_podium_tab()
+    # Podium tab - commented out
+    # with tab2:
+    #     render_podium_tab()
     
-    with tab3:
-        render_schedule_explorer_tab()
+    # Schedule tab - removed
+    # with tab3:
+    #     render_schedule_explorer_tab()
     
-    with tab4:
-        render_country_tracker_tab()
+    # Country Tracker tab - removed
+    # with tab4:
+    #     render_country_tracker_tab()
     
-    with tab5:
-        render_analytics_tab()
+    # Analytics tab - removed
+    # with tab5:
+    #     render_analytics_tab()
     
     # Footer
     st.markdown("---")
