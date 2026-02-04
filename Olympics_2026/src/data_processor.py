@@ -148,19 +148,28 @@ class OlympicsDataProcessor:
             return df
         
         # Check if country appears in teams
-        if df["teams"].isna().all():
-            return pd.DataFrame()
+        def check_country(teams_value):
+            """Safely check if country is in teams, handling all types"""
+            try:
+                # Handle None and scalar NaN
+                if teams_value is None:
+                    return False
+                if isinstance(teams_value, float) and pd.isna(teams_value):
+                    return False
+                # Handle empty values
+                if not teams_value:
+                    return False
+                # Check list of teams
+                if isinstance(teams_value, list):
+                    return any(
+                        isinstance(team, dict) and team.get("code") == country_code
+                        for team in teams_value
+                    )
+                return False
+            except (ValueError, TypeError):
+                return False
         
-        mask = df["teams"].apply(
-            lambda x: (
-                pd.notna(x) and
-                isinstance(x, list) and
-                any(
-                    isinstance(team, dict) and team.get("code") == country_code 
-                    for team in x
-                )
-            ) if pd.notna(x) else False
-        )
+        mask = df["teams"].apply(check_country)
         return df[mask].copy()
     
     @staticmethod

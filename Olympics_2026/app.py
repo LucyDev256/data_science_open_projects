@@ -117,13 +117,25 @@ def fetch_all_sports():
     
     try:
         response = api.get_all_sports()
-        if response.get("success"):
-            CacheManager.set("all_sports", response, "sports")
-            return response
-        return {}
+        # Handle both dict and list responses
+        if isinstance(response, dict):
+            if response.get("success"):
+                CacheManager.set("all_sports", response, "sports")
+                return response
+            elif "sports" in response:
+                # API returned sports directly without success flag
+                wrapped = {"success": True, "sports": response["sports"]}
+                CacheManager.set("all_sports", wrapped, "sports")
+                return wrapped
+        elif isinstance(response, list):
+            # API returned list of sports directly
+            wrapped = {"success": True, "sports": response}
+            CacheManager.set("all_sports", wrapped, "sports")
+            return wrapped
+        return {"success": False, "sports": []}
     except Exception as e:
         st.warning(f"⚠️ Could not fetch sports: {str(e)}")
-        return {}
+        return {"success": False, "sports": []}
 
 
 @st.cache_data(ttl=86400)
@@ -137,13 +149,23 @@ def fetch_all_countries():
     
     try:
         response = api.get_all_countries()
-        if response.get("success"):
-            CacheManager.set("all_countries", response, "countries")
-            return response
-        return {}
+        # Handle both dict and list responses
+        if isinstance(response, dict):
+            if response.get("success"):
+                CacheManager.set("all_countries", response, "countries")
+                return response
+            elif "countries" in response:
+                wrapped = {"success": True, "countries": response["countries"]}
+                CacheManager.set("all_countries", wrapped, "countries")
+                return wrapped
+        elif isinstance(response, list):
+            wrapped = {"success": True, "countries": response}
+            CacheManager.set("all_countries", wrapped, "countries")
+            return wrapped
+        return {"success": False, "countries": []}
     except Exception as e:
         st.warning(f"⚠️ Could not fetch countries: {str(e)}")
-        return {}
+        return {"success": False, "countries": []}
 
 
 def render_header():
@@ -272,8 +294,19 @@ def render_schedule_explorer_tab():
     with col2:
         sports_response = fetch_all_sports()
         sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
-        sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
-        sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
+        
+        # Fallback to sports from DataFrame if API fails
+        if not sports_list and "sport_code" in all_df.columns:
+            unique_codes = all_df["sport_code"].dropna().unique()
+            sport_codes = [str(code) for code in unique_codes if code]
+            sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes]
+        else:
+            sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
+            sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
+        
+        # Ensure we have at least some sports to show
+        if not sport_names:
+            sport_names = ["Alpine Skiing", "Ice Hockey", "Figure Skating", "Biathlon"]
         
         selected_sport = st.selectbox(
             "Filter by Sport",
@@ -413,7 +446,11 @@ def render_country_tracker_tab():
             elif isinstance(teams, dict) and "code" in teams and teams["code"]:
                 countries_set.add(teams["code"])
     
-    countries_list = sorted(list(countries_set)) if countries_set else ["USA", "CAN", "GBR"]  # Fallback
+    # Add fallback countries if none found
+    if not countries_set:
+        countries_set = {"USA", "CAN", "ITA", "GER", "FRA", "JPN", "CHN", "KOR", "NOR", "SWE"}
+    
+    countries_list = sorted(list(countries_set))
     
     col1, col2 = st.columns([1, 3])
     
@@ -458,8 +495,19 @@ def render_country_tracker_tab():
                 # Filter by sport for this country
                 sports_response = fetch_all_sports()
                 sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
-                sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
-                sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
+                
+                # Fallback to sports from country events
+                if not sports_list and "sport_code" in country_events.columns:
+                    unique_codes = country_events["sport_code"].dropna().unique()
+                    sport_codes = [str(code) for code in unique_codes if code]
+                    sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes]
+                else:
+                    sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
+                    sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
+                
+                # Ensure at least one option
+                if not sport_names:
+                    sport_names = ["Alpine Skiing", "Ice Hockey"]
                 
                 selected_sport = st.selectbox(
                     "Filter by Sport",
