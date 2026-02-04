@@ -74,7 +74,9 @@ class OlympicsVisualizations:
         event_names = display_df["event_name"].fillna("N/A").astype(str) if "event_name" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
         sport_codes = display_df["sport_code"] if "sport_code" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
         sport_names = sport_codes.apply(OlympicsDataProcessor.get_sport_name).astype(str)
-        venues = display_df["venue"].fillna("N/A").astype(str) if "venue" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
+        # Use venue_full if available
+        venue_col = "venue_full" if "venue_full" in display_df.columns else "venue"
+        venues = display_df[venue_col].fillna("N/A").astype(str) if venue_col in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
         cities = display_df["city"].fillna("N/A").astype(str) if "city" in display_df.columns else pd.Series(["N/A"] * len(display_df), index=display_df.index)
         
         # Build hover text using list comprehension to avoid pandas alignment issues
@@ -109,7 +111,13 @@ class OlympicsVisualizations:
             showlegend=False,
             hovermode="closest",
             template="plotly_white",
-            xaxis=dict(showgrid=True, gridwidth=1, gridcolor='LightGray'),
+            xaxis=dict(
+                showgrid=True, 
+                gridwidth=1, 
+                gridcolor='LightGray',
+                tickformat="%b %d, %Y<br>%H:%M",
+                dtick=86400000  # 1 day in milliseconds
+            ),
             yaxis=dict(showgrid=False)
         )
         

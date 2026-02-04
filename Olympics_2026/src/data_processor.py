@@ -110,8 +110,6 @@ class OlympicsDataProcessor:
         
         # Rename columns for consistency
         rename_dict = {}
-        if "venue_name" in df.columns:
-            rename_dict["venue_name"] = "venue"
         if "discipline" in df.columns:
             rename_dict["discipline"] = "event_name"
         
@@ -186,10 +184,15 @@ class OlympicsDataProcessor:
                     return False
                 # Check list of teams
                 if isinstance(teams_value, list):
-                    return any(
-                        isinstance(team, dict) and team.get("code") == country_code
-                        for team in teams_value
-                    )
+                    for team in teams_value:
+                        if isinstance(team, dict):
+                            # Check both 'code' and 'country_code' fields
+                            if team.get("code") == country_code or team.get("country_code") == country_code:
+                                return True
+                            # Also check if code/country_code is in the team name or abbreviation
+                            team_code = team.get("code", "").upper()
+                            if country_code.upper() == team_code:
+                                return True
                 return False
             except (ValueError, TypeError):
                 return False

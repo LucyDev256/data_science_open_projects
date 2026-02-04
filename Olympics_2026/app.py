@@ -240,7 +240,9 @@ def render_live_dashboard_tab():
             sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
             sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
             times = list(filtered_df["datetime"].dt.strftime("%H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
-            venues = list(filtered_df["venue"].astype(str)) if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
+            # Use venue_full if available, otherwise fallback to venue
+            venue_col = "venue_full" if "venue_full" in filtered_df.columns else "venue"
+            venues = list(filtered_df[venue_col].astype(str)) if venue_col in filtered_df.columns else ["N/A"] * len(filtered_df)
             statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
             
             display_df = pd.DataFrame({
@@ -521,7 +523,9 @@ def render_country_tracker_tab():
                     sport_codes = filtered_country_events["sport_code"] if "sport_code" in filtered_country_events.columns else pd.Series(["N/A"] * len(filtered_country_events))
                     sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
                     date_times = list(filtered_country_events["datetime"].dt.strftime("%Y-%m-%d %H:%M")) if "datetime" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
-                    venues = list(filtered_country_events["venue"].astype(str)) if "venue" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
+                    # Use venue_full if available
+                    venue_col = "venue_full" if "venue_full" in filtered_country_events.columns else "venue"
+                    venues = list(filtered_country_events[venue_col].astype(str)) if venue_col in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
                     statuses = list(filtered_country_events["status"].astype(str)) if "status" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
                     
                     display_df = pd.DataFrame({
