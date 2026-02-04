@@ -142,6 +142,37 @@ class MilanoCortina2026API:
         """Get all Olympic events happening today"""
         return self._make_request("/events/today")
     
+    def get_medal_events(
+        self,
+        sport_code: Optional[str] = None,
+        date: Optional[str] = None,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get only finals and events that award medals
+        
+        Args:
+            sport_code: Filter by sport code (optional)
+            date: Specific date (YYYY-MM-DD)
+            date_from: Start date for range (YYYY-MM-DD)
+            date_to: End date for range (YYYY-MM-DD)
+            
+        Returns:
+            API response with medal events only
+        """
+        params = {}
+        if sport_code:
+            params["sport_code"] = sport_code
+        if date:
+            params["date"] = date
+        if date_from:
+            params["date_from"] = date_from
+        if date_to:
+            params["date_to"] = date_to
+        
+        return self._make_request("/events/medal-events", params)
+    
     def search_events(self, query: str) -> Dict[str, Any]:
         """
         Full-text search across events, disciplines, and venues

@@ -205,19 +205,34 @@ def render_live_dashboard_tab():
     """Render Live Dashboard tab with filters"""
     st.subheader("🏟️ Olympics Events Dashboard")
     
-    # Fetch all events
-    all_response = fetch_all_events()
-    all_df = OlympicsDataProcessor.parse_events_response(all_response)
-    
-    if all_df.empty:
-        st.info("No events data available")
-        return
-    
-    # Filter bar
+    # Filter bar - Country selection at top
     st.markdown("### 🔍 Filters")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
+        # Country filter
+        countries_response = fetch_all_countries()
+        countries_list = countries_response.get("countries", []) if countries_response.get("success") else []
+        
+        country_codes = ["All"]
+        country_display = {"All": "All Countries"}
+        
+        for country in countries_list:
+            if isinstance(country, dict):
+                code = country.get("code", "")
+                name = country.get("name", code)
+                if code:
+                    country_codes.append(code)
+                    country_display[code] = f"{name} ({code})"
+        
+        selected_country = st.selectbox(
+            "Country",
+            options=country_codes,
+            format_func=lambda x: country_display.get(x, x),
+            key="live_country_filter"
+        )
+    
+    with col2:
         # Date range filter
         date_range = st.date_input(
             "Date Range",
@@ -225,35 +240,52 @@ def render_live_dashboard_tab():
             key="live_date_range"
         )
     
-    with col2:
+    with col3:
         # Sport filter
         sports_response = fetch_all_sports()
         sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
         
-        if not sports_list and "sport_code" in all_df.columns:
-            unique_codes = all_df["sport_code"].dropna().unique()
-            sport_codes = [str(code) for code in unique_codes if code]
-            sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes]
-        else:
-            sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
-            sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
+        sport_codes = ["All"]
+        sport_names_map = {"All": "All Sports"}
         
-        if not sport_names:
-            sport_names = ["Alpine Skiing", "Ice Hockey", "Figure Skating"]
+        for sport in sports_list:
+            if isinstance(sport, dict) and sport.get("code"):
+                code = sport.get("code")
+                name = OlympicsDataProcessor.get_sport_name(code)
+                sport_codes.append(code)
+                sport_names_map[code] = name
         
         selected_sport = st.selectbox(
             "Sport",
-            options=["All"] + sport_names,
+            options=sport_codes,
+            format_func=lambda x: sport_names_map.get(x, x),
             key="live_sport_filter"
         )
     
-    # Note about country filtering
-    st.info("💡 **Tip:** All Olympic events are shown. The API data structure doesn't support reliable country-specific filtering for individual sports (each event lists only immediate participants, not all countries in the sport).")
+    # Medal events filter
+    show_medal_only = st.checkbox("🏅 Show Medal Events Only", value=False, key="medal_only_filter")
     
     st.markdown("---")
     
+    # Fetch events based on country filter
+    if selected_country == "All":
+        all_response = fetch_all_events()
+    else:
+        # Use dedicated country endpoint
+        all_response = api_client.get_country_events(selected_country)
+    
+    all_df = OlympicsDataProcessor.parse_events_response(all_response)
+    
+    if all_df.empty:
+        st.info("No events data available for the selected country")
+        return
+    
     # Apply filters
     filtered_df = all_df.copy()
+    
+    # Medal events filter
+    if show_medal_only and "is_medal_event" in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df["is_medal_event"] == True]
     
     # Date filter
     if date_range and len(date_range) == 2:
@@ -263,21 +295,8 @@ def render_live_dashboard_tab():
         filtered_df = OlympicsDataProcessor.filter_by_date_range(filtered_df, start_date, end_date)
     
     # Sport filter
-    if selected_sport != "All" and sports_list:
-        sport_code_map = {}
-        for s in sports_list:
-            if isinstance(s, dict) and s.get("code"):
-                code = s.get("code")
-                sport_code_map[code] = OlympicsDataProcessor.get_sport_name(code)
-        
-        sport_code = None
-        for code, name in sport_code_map.items():
-            if name == selected_sport:
-                sport_code = code
-                break
-        
-        if sport_code:
-            filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, sport_code)
+    if selected_sport != "All":
+        filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, selected_sport)
     
     # Remove events with None venue
     if "venue_full" in filtered_df.columns:
