@@ -115,10 +115,14 @@ class OlympicsVisualizations:
                 showgrid=True, 
                 gridwidth=1, 
                 gridcolor='LightGray',
-                tickformat="%b %d, %Y<br>%H:%M",
-                dtick=86400000  # 1 day in milliseconds
+                type='date',
+                tickformat="%b %d<br>%H:%M",
+                tickangle=0
             ),
-            yaxis=dict(showgrid=False)
+            yaxis=dict(
+                showgrid=False,
+                tickfont=dict(size=9)
+            )
         )
         
         return fig

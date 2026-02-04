@@ -369,7 +369,9 @@ def render_schedule_explorer_tab():
         sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
         sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
         date_times = list(filtered_df["datetime"].dt.strftime("%Y-%m-%d %H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
-        venues = list(filtered_df["venue"].astype(str)) if "venue" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        # Use venue_full if available, otherwise fallback to venue
+        venue_col = "venue_full" if "venue_full" in filtered_df.columns else "venue"
+        venues = list(filtered_df[venue_col].astype(str)) if venue_col in filtered_df.columns else ["N/A"] * len(filtered_df)
         cities = list(filtered_df["city"].astype(str)) if "city" in filtered_df.columns else ["N/A"] * len(filtered_df)
         statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
         
