@@ -230,34 +230,11 @@ def render_live_dashboard_tab():
     """Render Live Dashboard tab with filters"""
     st.subheader("🏟️ Olympics Events Dashboard")
     
-    # Filter bar - Country selection at top
+    # Filter bar
     st.markdown("### 🔍 Filters")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
-        # Country filter
-        countries_response = fetch_all_countries()
-        countries_list = countries_response.get("countries", []) if countries_response.get("success") else []
-        
-        country_codes = ["All"]
-        country_display = {"All": "All Countries"}
-        
-        for country in countries_list:
-            if isinstance(country, dict):
-                code = country.get("code", "")
-                name = country.get("name", code)
-                if code:
-                    country_codes.append(code)
-                    country_display[code] = f"{name} ({code})"
-        
-        selected_country = st.selectbox(
-            "Country",
-            options=country_codes,
-            format_func=lambda x: country_display.get(x, x),
-            key="live_country_filter"
-        )
-    
-    with col2:
         # Date range filter
         date_range = st.date_input(
             "Date Range",
@@ -265,7 +242,7 @@ def render_live_dashboard_tab():
             key="live_date_range"
         )
     
-    with col3:
+    with col2:
         # Sport filter
         sports_response = fetch_all_sports()
         sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
@@ -287,30 +264,18 @@ def render_live_dashboard_tab():
             key="live_sport_filter"
         )
     
-    # Medal events filter
-    show_medal_only = st.checkbox("🏅 Show Medal Events Only", value=False, key="medal_only_filter")
-    
     st.markdown("---")
     
-    # Fetch events based on country filter
-    if selected_country == "All":
-        all_response = fetch_all_events()
-    else:
-        # Use dedicated country endpoint
-        all_response = fetch_country_events(selected_country)
-    
+    # Fetch all events
+    all_response = fetch_all_events()
     all_df = OlympicsDataProcessor.parse_events_response(all_response)
     
     if all_df.empty:
-        st.info("No events data available for the selected country")
+        st.info("No events data available")
         return
     
     # Apply filters
     filtered_df = all_df.copy()
-    
-    # Medal events filter
-    if show_medal_only and "is_medal_event" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["is_medal_event"] == True]
     
     # Date filter
     if date_range and len(date_range) == 2:
@@ -380,6 +345,29 @@ def render_live_dashboard_tab():
             file_name=f"olympics_events_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
         )
+        
+        # Visualizations section
+        st.markdown("---")
+        st.markdown("### 📊 Event Analytics")
+        
+        # Two pie charts side by side
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Sport events distribution pie chart
+            sport_fig = OlympicsVisualizations.create_sports_distribution_pie(filtered_df)
+            st.plotly_chart(sport_fig, use_container_width=True)
+        
+        with col2:
+            # Venue usage pie chart
+            venue_fig = OlympicsVisualizations.create_venue_distribution_pie(filtered_df)
+            st.plotly_chart(venue_fig, use_container_width=True)
+        
+        # Horizontal bar chart for past vs future events
+        st.markdown("### ⏱️ Event Timeline Status")
+        timeline_fig = OlympicsVisualizations.create_past_future_bar(filtered_df)
+        st.plotly_chart(timeline_fig, use_container_width=True)
+        
     else:
         st.info("No events match the selected filters")
 

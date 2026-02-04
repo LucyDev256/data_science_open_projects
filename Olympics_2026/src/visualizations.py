@@ -6,6 +6,8 @@ Creates interactive Plotly charts and displays
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+from datetime import datetime
+import pytz
 from typing import Dict, List, Optional
 from src.data_processor import OlympicsDataProcessor
 
@@ -382,3 +384,204 @@ class OlympicsVisualizations:
             "sports_count": str(sports),
             "countries_count": str(len(countries_set))
         }
+    
+    @staticmethod
+    def create_sports_distribution_pie(df: pd.DataFrame) -> go.Figure:
+        """
+        Create pie chart showing proportion of events by sport
+        
+        Args:
+            df: Events DataFrame
+            
+        Returns:
+            Plotly figure object
+        """
+        if df.empty or "sport_code" not in df.columns:
+            return OlympicsVisualizations._create_empty_chart("No data available")
+        
+        # Count events by sport
+        sport_counts = df["sport_code"].value_counts().reset_index()
+        sport_counts.columns = ["sport_code", "count"]
+        
+        # Get sport names
+        sport_counts["sport_name"] = sport_counts["sport_code"].apply(
+            lambda x: OlympicsDataProcessor.get_sport_name(x)
+        )
+        
+        # Create color list
+        colors = [
+            OlympicsVisualizations.SPORT_COLORS.get(code, "#95A5A6")
+            for code in sport_counts["sport_code"]
+        ]
+        
+        fig = go.Figure(data=[go.Pie(
+            labels=sport_counts["sport_name"],
+            values=sport_counts["count"],
+            marker=dict(colors=colors, line=dict(color="white", width=2)),
+            hovertemplate="<b>%{label}</b><br>Events: %{value}<br>%{percent}<extra></extra>",
+            textposition="auto",
+            textinfo="percent"
+        )])
+        
+        fig.update_layout(
+            title="🏅 Event Distribution by Sport",
+            height=500,
+            showlegend=True,
+            template="plotly_white",
+            legend=dict(
+                orientation="v",
+                yanchor="middle",
+                y=0.5,
+                xanchor="left",
+                x=1.05
+            )
+        )
+        
+        return fig
+    
+    @staticmethod
+    def create_venue_distribution_pie(df: pd.DataFrame) -> go.Figure:
+        """
+        Create pie chart showing proportion of venue usage for events
+        
+        Args:
+            df: Events DataFrame
+            
+        Returns:
+            Plotly figure object
+        """
+        if df.empty:
+            return OlympicsVisualizations._create_empty_chart("No venue data")
+        
+        # Use venue_full if available, otherwise venue
+        venue_col = "venue_full" if "venue_full" in df.columns else "venue"
+        
+        if venue_col not in df.columns:
+            return OlympicsVisualizations._create_empty_chart("No venue data")
+        
+        # Count events by venue
+        venue_counts = df[venue_col].value_counts().reset_index()
+        venue_counts.columns = ["venue", "count"]
+        
+        # Take top 10 venues, group rest as "Other"
+        if len(venue_counts) > 10:
+            top_10 = venue_counts.head(10)
+            other_count = venue_counts.iloc[10:]["count"].sum()
+            other_row = pd.DataFrame([{"venue": "Other Venues", "count": other_count}])
+            venue_counts = pd.concat([top_10, other_row], ignore_index=True)
+        
+        # Create color palette
+        colors = OlympicsVisualizations._generate_color_palette(len(venue_counts))
+        
+        fig = go.Figure(data=[go.Pie(
+            labels=venue_counts["venue"],
+            values=venue_counts["count"],
+            marker=dict(colors=colors, line=dict(color="white", width=2)),
+            hovertemplate="<b>%{label}</b><br>Events: %{value}<br>%{percent}<extra></extra>",
+            textposition="auto",
+            textinfo="percent"
+        )])
+        
+        fig.update_layout(
+            title="📍 Venue Usage Distribution",
+            height=500,
+            showlegend=True,
+            template="plotly_white",
+            legend=dict(
+                orientation="v",
+                yanchor="middle",
+                y=0.5,
+                xanchor="left",
+                x=1.05
+            )
+        )
+        
+        return fig
+    
+    @staticmethod
+    def create_past_future_bar(df: pd.DataFrame) -> go.Figure:
+        """
+        Create horizontal bar chart showing events that already happened vs future events
+        
+        Args:
+            df: Events DataFrame
+            
+        Returns:
+            Plotly figure object
+        """
+        if df.empty or "datetime" not in df.columns:
+            return OlympicsVisualizations._create_empty_chart("No datetime data")
+        
+        # Get current time in CET timezone
+        cet_tz = pytz.timezone("Europe/Rome")
+        now = datetime.now(cet_tz)
+        
+        # Count past and future events
+        past_events = (df["datetime"] < now).sum()
+        future_events = (df["datetime"] >= now).sum()
+        
+        fig = go.Figure()
+        
+        # Add past events (left side)
+        fig.add_trace(go.Bar(
+            y=["Events"],
+            x=[past_events],
+            name="Past Events",
+            orientation='h',
+            marker=dict(color=OlympicsVisualizations.COLORS["completed"]),
+            text=[f"{past_events} ({past_events/(past_events+future_events)*100:.1f}%)"],
+            textposition='inside',
+            hovertemplate="<b>Past Events</b><br>Count: %{x}<extra></extra>"
+        ))
+        
+        # Add future events (right side)
+        fig.add_trace(go.Bar(
+            y=["Events"],
+            x=[future_events],
+            name="Future Events",
+            orientation='h',
+            marker=dict(color=OlympicsVisualizations.COLORS["upcoming"]),
+            text=[f"{future_events} ({future_events/(past_events+future_events)*100:.1f}%)"],
+            textposition='inside',
+            hovertemplate="<b>Future Events</b><br>Count: %{x}<extra></extra>"
+        ))
+        
+        fig.update_layout(
+            title=f"⏱️ Event Timeline (as of {now.strftime('%b %d, %Y %H:%M CET')})",
+            barmode='stack',
+            height=250,
+            showlegend=True,
+            template="plotly_white",
+            xaxis=dict(
+                title="Number of Events",
+                showgrid=True
+            ),
+            yaxis=dict(
+                showticklabels=False
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
+        )
+        
+        return fig
+    
+    @staticmethod
+    def _generate_color_palette(n: int) -> list:
+        """Generate a color palette with n colors"""
+        import colorsys
+        colors = []
+        for i in range(n):
+            hue = i / n
+            rgb = colorsys.hsv_to_rgb(hue, 0.7, 0.9)
+            hex_color = '#{:02x}{:02x}{:02x}'.format(
+                int(rgb[0] * 255),
+                int(rgb[1] * 255),
+                int(rgb[2] * 255)
+            )
+            colors.append(hex_color)
+        return colors
