@@ -235,6 +235,20 @@ def render_live_dashboard_tab():
         filtered_df = filtered_df.reset_index(drop=True)
         filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
         
+        # Remove duplicate events
+        dedup_cols = []
+        if "event_name" in filtered_df.columns:
+            dedup_cols.append("event_name")
+        if "datetime" in filtered_df.columns:
+            dedup_cols.append("datetime")
+        if "venue_full" in filtered_df.columns:
+            dedup_cols.append("venue_full")
+        elif "venue" in filtered_df.columns:
+            dedup_cols.append("venue")
+        
+        if dedup_cols:
+            filtered_df = filtered_df.drop_duplicates(subset=dedup_cols, keep='first')
+        
         # Display as table - create clean DataFrame with safe extraction
         event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
         sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
@@ -363,6 +377,20 @@ def render_schedule_explorer_tab():
         # Reset index and ensure no duplicate columns
         filtered_df = filtered_df.reset_index(drop=True)
         filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
+        
+        # Remove duplicate events based on event_name, datetime, and venue
+        dedup_cols = []
+        if "event_name" in filtered_df.columns:
+            dedup_cols.append("event_name")
+        if "datetime" in filtered_df.columns:
+            dedup_cols.append("datetime")
+        if "venue_full" in filtered_df.columns:
+            dedup_cols.append("venue_full")
+        elif "venue" in filtered_df.columns:
+            dedup_cols.append("venue")
+        
+        if dedup_cols:
+            filtered_df = filtered_df.drop_duplicates(subset=dedup_cols, keep='first')
         
         # Create clean DataFrame with safe extraction
         event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
@@ -520,6 +548,20 @@ def render_country_tracker_tab():
                     # Reset index and ensure no duplicate columns
                     filtered_country_events = filtered_country_events.reset_index(drop=True)
                     filtered_country_events = filtered_country_events.loc[:, ~filtered_country_events.columns.duplicated()]
+                    
+                    # Remove duplicate events
+                    dedup_cols = []
+                    if "event_name" in filtered_country_events.columns:
+                        dedup_cols.append("event_name")
+                    if "datetime" in filtered_country_events.columns:
+                        dedup_cols.append("datetime")
+                    if "venue_full" in filtered_country_events.columns:
+                        dedup_cols.append("venue_full")
+                    elif "venue" in filtered_country_events.columns:
+                        dedup_cols.append("venue")
+                    
+                    if dedup_cols:
+                        filtered_country_events = filtered_country_events.drop_duplicates(subset=dedup_cols, keep='first')
                     
                     # Create clean DataFrame with safe extraction
                     event_names = list(filtered_country_events["event_name"].astype(str)) if "event_name" in filtered_country_events.columns else ["N/A"] * len(filtered_country_events)
