@@ -168,6 +168,31 @@ def fetch_all_countries():
         return {"success": False, "countries": []}
 
 
+@st.cache_data(ttl=600)
+def fetch_country_events(country_code: str):
+    """Fetch events for a specific country"""
+    api = init_api_client()
+    
+    cache_key = f"country_events_{country_code}"
+    cached = CacheManager.get(cache_key, "country_events")
+    if cached:
+        return cached
+    
+    try:
+        with st.spinner(f"📡 Fetching events for {country_code}..."):
+            response = api.get_country_events(country_code)
+        
+        if response.get("success"):
+            CacheManager.set(cache_key, response, "country_events")
+            return response
+        else:
+            st.warning(f"⚠️ Could not fetch events for {country_code}.")
+            return {}
+    except Exception as e:
+        st.error(f"❌ API Error: {str(e)}")
+        return {}
+
+
 def render_header():
     """Render page header"""
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -272,7 +297,7 @@ def render_live_dashboard_tab():
         all_response = fetch_all_events()
     else:
         # Use dedicated country endpoint
-        all_response = api_client.get_country_events(selected_country)
+        all_response = fetch_country_events(selected_country)
     
     all_df = OlympicsDataProcessor.parse_events_response(all_response)
     
