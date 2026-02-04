@@ -229,35 +229,35 @@ def render_live_dashboard_tab():
     filtered_df = today_df.copy()
     if status_filter != "All":
         filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
+    
+    if not filtered_df.empty:
+        # Reset index and ensure no duplicate columns
+        filtered_df = filtered_df.reset_index(drop=True)
+        filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
         
-        if not filtered_df.empty:
-            # Reset index and ensure no duplicate columns
-            filtered_df = filtered_df.reset_index(drop=True)
-            filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
-            
-            # Display as table - create clean DataFrame with safe extraction
-            event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
-            sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
-            sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
-            times = list(filtered_df["datetime"].dt.strftime("%H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
-            # Use venue_full if available, otherwise fallback to venue
-            venue_col = "venue_full" if "venue_full" in filtered_df.columns else "venue"
-            venues = list(filtered_df[venue_col].astype(str)) if venue_col in filtered_df.columns else ["N/A"] * len(filtered_df)
-            statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
-            
-            display_df = pd.DataFrame({
-                "event_name": event_names,
-                "sport": sports,
-                "time": times,
-                "venue": venues,
-                "status": statuses
-            })
-            
-            st.dataframe(
-                display_df,
-                width="stretch",
-                hide_index=True
-            )
+        # Display as table - create clean DataFrame with safe extraction
+        event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
+        sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
+        times = list(filtered_df["datetime"].dt.strftime("%H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        # Use venue_full if available, otherwise fallback to venue
+        venue_col = "venue_full" if "venue_full" in filtered_df.columns else "venue"
+        venues = list(filtered_df[venue_col].astype(str)) if venue_col in filtered_df.columns else ["N/A"] * len(filtered_df)
+        statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
+        
+        display_df = pd.DataFrame({
+            "event_name": event_names,
+            "sport": sports,
+            "time": times,
+            "venue": venues,
+            "status": statuses
+        })
+        
+        st.dataframe(
+            display_df,
+            width="stretch",
+            hide_index=True
+        )
     else:
         st.info("No events match the selected filter")
 
