@@ -202,10 +202,10 @@ def render_stats_cards(df: pd.DataFrame):
 
 
 def render_live_dashboard_tab():
-    """Render Live Results Dashboard tab"""
-    st.subheader("🏆 Live Results Dashboard")
+    """Render Live Dashboard tab with filters"""
+    st.subheader("🏟️ Olympics Events Dashboard")
     
-    # Fetch all events (not just today's)
+    # Fetch all events
     all_response = fetch_all_events()
     all_df = OlympicsDataProcessor.parse_events_response(all_response)
     
@@ -213,25 +213,118 @@ def render_live_dashboard_tab():
         st.info("No events data available")
         return
     
-    render_stats_cards(all_df)
+    # Filter bar
+    st.markdown("### 🔍 Filters")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Date range filter
+        date_range = st.date_input(
+            "Date Range",
+            value=(datetime(2026, 2, 6).date(), datetime(2026, 2, 22).date()),
+            key="live_date_range"
+        )
+    
+    with col2:
+        # Sport filter
+        sports_response = fetch_all_sports()
+        sports_list = sports_response.get("sports", []) if sports_response.get("success") else []
+        
+        if not sports_list and "sport_code" in all_df.columns:
+            unique_codes = all_df["sport_code"].dropna().unique()
+            sport_codes = [str(code) for code in unique_codes if code]
+            sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes]
+        else:
+            sport_codes = [s.get("code") for s in sports_list if isinstance(s, dict) and s.get("code")]
+            sport_names = [OlympicsDataProcessor.get_sport_name(code) for code in sport_codes if code]
+        
+        if not sport_names:
+            sport_names = ["Alpine Skiing", "Ice Hockey", "Figure Skating"]
+        
+        selected_sport = st.selectbox(
+            "Sport",
+            options=["All"] + sport_names,
+            key="live_sport_filter"
+        )
+    
+    with col3:
+        # Country filter
+        countries_response = fetch_all_countries()
+        countries_list = countries_response.get("countries", []) if countries_response.get("success") else []
+        
+        countries_set = set()
+        if countries_list:
+            for c in countries_list:
+                if isinstance(c, dict) and c.get("code"):
+                    countries_set.add(c["code"])
+                elif isinstance(c, str):
+                    countries_set.add(c)
+        
+        # Fallback: extract from teams
+        if not countries_set and "teams" in all_df.columns:
+            for teams in all_df["teams"]:
+                if teams is None or (isinstance(teams, float) and pd.isna(teams)):
+                    continue
+                if isinstance(teams, list):
+                    for team in teams:
+                        if isinstance(team, dict):
+                            code = team.get("code") or team.get("country_code")
+                            if code:
+                                countries_set.add(code.upper())
+        
+        if not countries_set:
+            countries_set = {"USA", "CAN", "ITA", "GER", "FRA", "JPN", "CHN", "KOR"}
+        
+        countries_list_sorted = sorted(list(countries_set))
+        
+        selected_country = st.selectbox(
+            "Country",
+            options=["All"] + countries_list_sorted,
+            key="live_country_filter"
+        )
+    
     st.markdown("---")
     
-    # Main events display
-    st.write("### 📅 Events")
-    
-    # Filter by status
-    status_filter = st.selectbox(
-        "Filter by Status:",
-        options=["All", "Today", "Completed", "Scheduled"],
-        key="today_status_filter"
-    )
-    
+    # Apply filters
     filtered_df = all_df.copy()
-    if status_filter != "All":
-        filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
+    
+    # Date filter
+    if date_range and len(date_range) == 2:
+        milan_tz = pytz.timezone("Europe/Rome")
+        start_date = pd.Timestamp(date_range[0], tz=milan_tz)
+        end_date = pd.Timestamp(date_range[1], tz=milan_tz)
+        filtered_df = OlympicsDataProcessor.filter_by_date_range(filtered_df, start_date, end_date)
+    
+    # Sport filter
+    if selected_sport != "All" and sports_list:
+        sport_code_map = {}
+        for s in sports_list:
+            if isinstance(s, dict) and s.get("code"):
+                code = s.get("code")
+                sport_code_map[code] = OlympicsDataProcessor.get_sport_name(code)
+        
+        sport_code = None
+        for code, name in sport_code_map.items():
+            if name == selected_sport:
+                sport_code = code
+                break
+        
+        if sport_code:
+            filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, sport_code)
+    
+    # Country filter
+    if selected_country != "All":
+        filtered_df = OlympicsDataProcessor.filter_by_country(filtered_df, selected_country)
+    
+    # Remove events with None venue
+    if "venue_full" in filtered_df.columns:
+        filtered_df = filtered_df[~filtered_df["venue_full"].str.contains("None, None", na=False)]
+    
+    # Display events
+    st.write(f"### 📅 Events ({len(filtered_df)} total)")
     
     if not filtered_df.empty:
-        # Reset index and ensure no duplicate columns
+        # Reset index and remove duplicates
         filtered_df = filtered_df.reset_index(drop=True)
         filtered_df = filtered_df.loc[:, ~filtered_df.columns.duplicated()]
         
@@ -249,12 +342,11 @@ def render_live_dashboard_tab():
         if dedup_cols:
             filtered_df = filtered_df.drop_duplicates(subset=dedup_cols, keep='first')
         
-        # Display as table - create clean DataFrame with safe extraction
+        # Create display DataFrame
         event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
         sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
         sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
         times = list(filtered_df["datetime"].dt.strftime("%b %d, %H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
-        # Use venue_full if available, otherwise fallback to venue
         venue_col = "venue_full" if "venue_full" in filtered_df.columns else "venue"
         venues = list(filtered_df[venue_col].astype(str)) if venue_col in filtered_df.columns else ["N/A"] * len(filtered_df)
         statuses = list(filtered_df["status"].astype(str)) if "status" in filtered_df.columns else ["N/A"] * len(filtered_df)
@@ -272,8 +364,189 @@ def render_live_dashboard_tab():
             width="stretch",
             hide_index=True
         )
+        
+        # Export option
+        csv = display_df.to_csv(index=False)
+        st.download_button(
+            label="📥 Download as CSV",
+            data=csv,
+            file_name=f"olympics_events_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv"
+        )
     else:
-        st.info("No events match the selected filter")
+        st.info("No events match the selected filters")
+
+
+def render_podium_tab():
+    """Render Podium/Medal Tracker tab"""
+    st.subheader("🏅 Medal Tracker & Country Scoreboard")
+    
+    # Note about data availability
+    st.info("📌 **Note:** Medal results will be available once events are completed. Currently showing event participation data.")
+    
+    # Fetch all events
+    all_response = fetch_all_events()
+    all_df = OlympicsDataProcessor.parse_events_response(all_response)
+    
+    if all_df.empty:
+        st.warning("No events data available")
+        return
+    
+    # Get all countries
+    countries_set = set()
+    if "teams" in all_df.columns:
+        for teams in all_df["teams"]:
+            if teams is None or (isinstance(teams, float) and pd.isna(teams)):
+                continue
+            if isinstance(teams, list):
+                for team in teams:
+                    if isinstance(team, dict):
+                        code = team.get("code") or team.get("country_code")
+                        if code:
+                            countries_set.add(code.upper())
+    
+    if not countries_set:
+        countries_set = {"USA", "CAN", "ITA", "GER", "FRA", "JPN", "CHN", "KOR"}
+    
+    countries_list = sorted(list(countries_set))
+    
+    # Country selector
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        selected_country = st.selectbox(
+            "Select Country",
+            options=countries_list,
+            key="podium_country_select"
+        )
+    
+    with col2:
+        st.write("")  # Spacer
+    
+    if selected_country:
+        # Filter events for selected country
+        country_events = OlympicsDataProcessor.filter_by_country(all_df, selected_country)
+        
+        st.markdown("---")
+        st.write(f"## {selected_country} - Olympic Performance")
+        
+        if not country_events.empty:
+            # Stats
+            col1, col2, col3, col4, col5 = st.columns(5)
+            
+            with col1:
+                st.metric("📊 Total Events", len(country_events))
+            
+            with col2:
+                sports_count = country_events["sport_code"].nunique() if "sport_code" in country_events.columns else 0
+                st.metric("⛷️ Sports", sports_count)
+            
+            with col3:
+                # Placeholder for gold medals (data not available yet)
+                st.metric("🥇 Gold", "TBD")
+            
+            with col4:
+                # Placeholder for silver medals
+                st.metric("🥈 Silver", "TBD")
+            
+            with col5:
+                # Placeholder for bronze medals
+                st.metric("🥉 Bronze", "TBD")
+            
+            st.markdown("---")
+            
+            # Medal events
+            st.write("### 🎯 Medal Events")
+            medal_events = country_events[country_events.get("is_medal_event", False) == True] if "is_medal_event" in country_events.columns else country_events
+            
+            if not medal_events.empty:
+                st.write(f"**{len(medal_events)} medal events** for {selected_country}")
+                
+                # Group by sport
+                if "sport_code" in medal_events.columns:
+                    sport_counts = medal_events.groupby("sport_code").size().reset_index(name="count")
+                    sport_counts["sport_name"] = sport_counts["sport_code"].apply(OlympicsDataProcessor.get_sport_name)
+                    sport_counts = sport_counts.sort_values("count", ascending=False)
+                    
+                    fig = go.Figure(data=[go.Bar(
+                        x=sport_counts["sport_name"],
+                        y=sport_counts["count"],
+                        marker=dict(color="#FFD700"),
+                        text=sport_counts["count"],
+                        textposition="outside"
+                    )])
+                    
+                    fig.update_layout(
+                        title=f"Medal Events by Sport - {selected_country}",
+                        xaxis_title="Sport",
+                        yaxis_title="Number of Events",
+                        height=400,
+                        showlegend=False,
+                        template="plotly_white"
+                    )
+                    
+                    st.plotly_chart(fig, width="stretch")
+        else:
+            st.info(f"No events found for {selected_country}")
+    
+    st.markdown("---")
+    
+    # Overall Leaderboard
+    st.write("### 🏆 Top 10 Countries Leaderboard")
+    st.caption("**Scoring System:** Gold = 9 points | Silver = 3 points | Bronze = 1 point")
+    
+    # Create placeholder leaderboard
+    st.info("📌 **Leaderboard will be populated as medal results become available during the Olympics (Feb 6-22, 2026)**")
+    
+    # Show top countries by event participation as placeholder
+    st.write("**Top Countries by Event Participation:**")
+    
+    country_participation = {}
+    if "teams" in all_df.columns:
+        for idx, row in all_df.iterrows():
+            teams = row.get("teams")
+            if teams is None or (isinstance(teams, float) and pd.isna(teams)):
+                continue
+            if isinstance(teams, list):
+                for team in teams:
+                    if isinstance(team, dict):
+                        code = team.get("code") or team.get("country_code")
+                        if code:
+                            code = code.upper()
+                            country_participation[code] = country_participation.get(code, 0) + 1
+    
+    if country_participation:
+        # Sort and get top 10
+        sorted_countries = sorted(country_participation.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        leaderboard_df = pd.DataFrame(sorted_countries, columns=["Country", "Events"])
+        leaderboard_df.index = range(1, len(leaderboard_df) + 1)
+        leaderboard_df.index.name = "Rank"
+        
+        st.dataframe(leaderboard_df, width="stretch")
+        
+        # Visualization
+        fig = go.Figure(data=[go.Bar(
+            x=[item[0] for item in sorted_countries],
+            y=[item[1] for item in sorted_countries],
+            marker=dict(
+                color=[item[1] for item in sorted_countries],
+                colorscale=[[0, "#CD7F32"], [0.5, "#C0C0C0"], [1, "#FFD700"]],
+                showscale=False
+            ),
+            text=[item[1] for item in sorted_countries],
+            textposition="outside"
+        )])
+        
+        fig.update_layout(
+            title="Top 10 Countries by Event Participation",
+            xaxis_title="Country",
+            yaxis_title="Number of Events",
+            height=500,
+            template="plotly_white"
+        )
+        
+        st.plotly_chart(fig, width="stretch")
 
 
 def render_schedule_explorer_tab():
@@ -705,8 +978,9 @@ def main():
     render_sidebar()
     
     # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "🏆 Live Dashboard",
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🏏 Live Dashboard",
+        "🏅 Podium",
         "📅 Schedule",
         "🌍 Country Tracker",
         "📊 Analytics"
@@ -716,12 +990,15 @@ def main():
         render_live_dashboard_tab()
     
     with tab2:
-        render_schedule_explorer_tab()
+        render_podium_tab()
     
     with tab3:
-        render_country_tracker_tab()
+        render_schedule_explorer_tab()
     
     with tab4:
+        render_country_tracker_tab()
+    
+    with tab5:
         render_analytics_tab()
     
     # Footer
