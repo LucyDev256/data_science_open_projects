@@ -62,7 +62,7 @@ Your Streamlit application for tracking all Milano-Cortina 2026 Winter Olympics 
 cp .env.example .env
 
 # Add your RapidAPI key to .env
-# RAPIDAPI_KEY=your_key_here
+# RAPIDAPI_KEY="..."
 
 # Create and activate virtual environment
 python -m venv venv

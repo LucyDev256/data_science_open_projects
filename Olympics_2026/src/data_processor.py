@@ -235,6 +235,8 @@ class OlympicsDataProcessor:
     @staticmethod
     def get_sport_name(sport_code: str) -> str:
         """Get full sport name from code"""
+        if not sport_code or sport_code.lower() in ['unk', 'unknown', 'n/a']:
+            return "Unknown Sport"
         return OlympicsDataProcessor.SPORT_NAMES.get(sport_code, sport_code.upper())
     
     @staticmethod
