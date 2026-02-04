@@ -216,22 +216,19 @@ def render_live_dashboard_tab():
     render_stats_cards(today_df)
     st.markdown("---")
     
-    # Split into columns for layout
-    col_left, col_right = st.columns([2, 1])
+    # Main events display
+    st.write("### 📅 Events")
     
-    with col_left:
-        st.write("### 📅 Today's Events")
-        
-        # Filter by status
-        status_filter = st.selectbox(
-            "Filter by Status:",
-            options=["All", "Upcoming", "Completed", "Today"],
-            key="today_status_filter"
-        )
-        
-        filtered_df = today_df.copy()
-        if status_filter != "All":
-            filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
+    # Filter by status
+    status_filter = st.selectbox(
+        "Filter by Status:",
+        options=["All", "Upcoming", "Completed", "Today"],
+        key="today_status_filter"
+    )
+    
+    filtered_df = today_df.copy()
+    if status_filter != "All":
+        filtered_df = OlympicsDataProcessor.filter_by_status(filtered_df, status_filter)
         
         if not filtered_df.empty:
             # Reset index and ensure no duplicate columns
@@ -259,14 +256,8 @@ def render_live_dashboard_tab():
                 width="stretch",
                 hide_index=True
             )
-        else:
-            st.info("No events match the selected filter")
-    
-    with col_right:
-        st.write("### 📈 Status Distribution")
-        fig = OlympicsVisualizations.create_events_by_status(today_df)
-        fig.update_layout(margin=dict(t=40, b=0, l=0, r=0))
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    else:
+        st.info("No events match the selected filter")
 
 
 def render_schedule_explorer_tab():
@@ -282,7 +273,7 @@ def render_schedule_explorer_tab():
         return
     
     # Create filter columns
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         date_range = st.date_input(
@@ -315,16 +306,6 @@ def render_schedule_explorer_tab():
         )
     
     with col3:
-        venue_list = []
-        if "venue" in all_df.columns:
-            venue_list = sorted(list(set(str(v) for v in all_df["venue"].dropna() if v and str(v).strip())))
-        selected_venue = st.selectbox(
-            "Filter by Venue",
-            options=["All"] + venue_list,
-            key="schedule_venue_filter"
-        )
-    
-    with col4:
         st.write("")  # Spacer
     
     # Apply filters
@@ -354,9 +335,6 @@ def render_schedule_explorer_tab():
         
         if sport_code:
             filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, sport_code)
-    
-    if selected_venue != "All":
-        filtered_df = filtered_df[filtered_df["venue"] == selected_venue]
     
     st.markdown("---")
     
@@ -458,7 +436,6 @@ def render_country_tracker_tab():
         selected_country = st.selectbox(
             "Select Country",
             options=countries_list,
-            format_func=lambda x: f"{StreamlitHelpers.get_country_flag(x)} {x}",
             key="country_tracker_select"
         )
     
@@ -470,7 +447,7 @@ def render_country_tracker_tab():
         country_events = OlympicsDataProcessor.filter_by_country(all_df, selected_country)
         
         st.markdown("---")
-        st.write(f"## {StreamlitHelpers.get_country_flag(selected_country)} {selected_country} - Events")
+        st.write(f"## {selected_country} - Events")
         
         if not country_events.empty:
             # Stats

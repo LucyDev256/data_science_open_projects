@@ -81,21 +81,46 @@ class OlympicsDataProcessor:
             errors="coerce"
         )
         
-        # Extract venue information
+        # Extract venue information and create readable venue strings
         if "venue" in df.columns and df["venue"].notna().any():
-            venue_data = pd.json_normalize(df["venue"])
-            df = pd.concat([df, venue_data.add_prefix("venue_")], axis=1)
+            # Extract venue details
+            venue_names = []
+            venue_cities = []
+            venue_countries = []
+            
+            for v in df["venue"]:
+                if isinstance(v, dict):
+                    venue_names.append(v.get("name", "N/A"))
+                    venue_cities.append(v.get("city", "N/A"))
+                    venue_countries.append(v.get("country", "N/A"))
+                else:
+                    venue_names.append(str(v) if v else "N/A")
+                    venue_cities.append("N/A")
+                    venue_countries.append("N/A")
+            
+            df["venue_name"] = venue_names
+            df["city"] = venue_cities
+            df["venue_country"] = venue_countries
+            # Create full venue display
+            df["venue_full"] = [f"{name}, {city}, {country}" if name != "N/A" else "N/A" 
+                               for name, city, country in zip(venue_names, venue_cities, venue_countries)]
         
         # Add computed columns
         df = OlympicsDataProcessor._add_computed_columns(df)
         
         # Rename columns for consistency
-        df = df.rename(columns={
-            "venue_name": "venue",
-            "venue_city": "city",
-            "sport_code": "sport_code",
-            "discipline": "event_name"
-        })
+        rename_dict = {}
+        if "venue_name" in df.columns:
+            rename_dict["venue_name"] = "venue"
+        if "discipline" in df.columns:
+            rename_dict["discipline"] = "event_name"
+        
+        if rename_dict:
+            df = df.rename(columns=rename_dict)
+        
+        # Ensure venue column exists
+        if "venue" not in df.columns and "venue_full" in df.columns:
+            df["venue"] = df["venue_full"]
         
         return df
     
@@ -295,10 +320,34 @@ class OlympicsDataProcessor:
     @staticmethod
     def get_events_by_venue(df: pd.DataFrame) -> pd.DataFrame:
         """Get event count by venue"""
-        if df.empty or "venue" not in df.columns or "city" not in df.columns:
+        if df.empty:
             return pd.DataFrame()
         
-        venue_counts = df.groupby(["venue", "city"]).size().reset_index(name="count")
+        # Use venue_full if available, otherwise venue
+        venue_col = "venue_full" if "venue_full" in df.columns else "venue"
+        city_col = "city" if "city" in df.columns else None
+        
+        if venue_col not in df.columns:
+            return pd.DataFrame()
+        
+        # Remove duplicate columns if they exist
+        df_clean = df.loc[:, ~df.columns.duplicated()]
+        
+        # Create venue counts
+        if city_col and city_col in df_clean.columns:
+            # Ensure both columns are 1-dimensional
+            venue_series = df_clean[venue_col].astype(str)
+            city_series = df_clean[city_col].astype(str)
+            
+            venue_counts = pd.DataFrame({
+                "venue": venue_series,
+                "city": city_series
+            }).groupby(["venue", "city"]).size().reset_index(name="count")
+        else:
+            venue_counts = df_clean[venue_col].astype(str).value_counts().reset_index()
+            venue_counts.columns = ["venue", "count"]
+            venue_counts["city"] = "N/A"
+        
         return venue_counts.sort_values("count", ascending=False)
     
     @staticmethod
