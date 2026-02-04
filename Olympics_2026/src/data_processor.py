@@ -120,6 +120,12 @@ class OlympicsDataProcessor:
         if "venue" not in df.columns and "venue_full" in df.columns:
             df["venue"] = df["venue_full"]
         
+        # Filter out events with unknown/invalid sport codes
+        if "sport_code" in df.columns:
+            df = df[df["sport_code"].notna()].copy()
+            df = df[~df["sport_code"].isin(['unk', 'unknown', 'UNK', 'UNKNOWN', 'n/a', 'N/A'])].copy()
+            df = df[df["sport_code"].str.len() > 0].copy()
+        
         return df
     
     @staticmethod
