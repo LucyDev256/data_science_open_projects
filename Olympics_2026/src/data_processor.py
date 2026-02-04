@@ -126,6 +126,25 @@ class OlympicsDataProcessor:
             df = df[~df["sport_code"].isin(['unk', 'unknown', 'UNK', 'UNKNOWN', 'n/a', 'N/A'])].copy()
             df = df[df["sport_code"].str.len() > 0].copy()
         
+        # Remove duplicate events at the source
+        # Deduplicate based on event_name, date, time, and venue to catch exact duplicates
+        dedup_cols = []
+        if "event_name" in df.columns:
+            dedup_cols.append("event_name")
+        if "date" in df.columns:
+            dedup_cols.append("date")
+        if "time" in df.columns:
+            dedup_cols.append("time")
+        if "venue_full" in df.columns:
+            dedup_cols.append("venue_full")
+        elif "venue" in df.columns:
+            dedup_cols.append("venue")
+        if "sport_code" in df.columns:
+            dedup_cols.append("sport_code")
+        
+        if dedup_cols and len(df) > 0:
+            df = df.drop_duplicates(subset=dedup_cols, keep='first')
+        
         return df
     
     @staticmethod
