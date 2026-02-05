@@ -396,27 +396,32 @@ class OlympicsVisualizations:
         Returns:
             Plotly figure object
         """
-        if df.empty or "sport_code" not in df.columns:
+        if df.empty:
             return OlympicsVisualizations._create_empty_chart("No data available")
         
-        # Count events by sport
-        sport_counts = df["sport_code"].value_counts().reset_index()
-        sport_counts.columns = ["sport_code", "count"]
+        # Use detailed discipline categories if available
+        if "discipline_detailed" in df.columns:
+            category_col = "discipline_detailed"
+        elif "sport_code" in df.columns:
+            # Fallback to sport_code
+            df_temp = df.copy()
+            df_temp["discipline_detailed"] = df_temp["sport_code"].apply(
+                lambda x: OlympicsDataProcessor.get_sport_name(x)
+            )
+            category_col = "discipline_detailed"
+        else:
+            return OlympicsVisualizations._create_empty_chart("No data available")
         
-        # Get sport names
-        sport_counts["sport_name"] = sport_counts["sport_code"].apply(
-            lambda x: OlympicsDataProcessor.get_sport_name(x)
-        )
+        # Count events by discipline
+        discipline_counts = df[category_col].value_counts().reset_index()
+        discipline_counts.columns = ["discipline", "count"]
         
-        # Create color list
-        colors = [
-            OlympicsVisualizations.SPORT_COLORS.get(code, "#95A5A6")
-            for code in sport_counts["sport_code"]
-        ]
+        # Generate colors
+        colors = OlympicsVisualizations._generate_color_palette(len(discipline_counts))
         
         fig = go.Figure(data=[go.Pie(
-            labels=sport_counts["sport_name"],
-            values=sport_counts["count"],
+            labels=discipline_counts["discipline"],
+            values=discipline_counts["count"],
             marker=dict(colors=colors, line=dict(color="white", width=2)),
             hovertemplate="<b>%{label}</b><br>Events: %{value}<br>%{percent}<extra></extra>",
             textposition="auto",
@@ -424,7 +429,7 @@ class OlympicsVisualizations:
         )])
         
         fig.update_layout(
-            title="🏅 Event Distribution by Sport",
+            title="🏅 Event Distribution by Discipline",
             height=500,
             showlegend=True,
             template="plotly_white",
@@ -453,10 +458,14 @@ class OlympicsVisualizations:
         if df.empty:
             return OlympicsVisualizations._create_empty_chart("No venue data")
         
-        # Use venue_full if available, otherwise venue
-        venue_col = "venue_full" if "venue_full" in df.columns else "venue"
-        
-        if venue_col not in df.columns:
+        # Use detailed venue categories if available
+        if "venue_detailed" in df.columns:
+            venue_col = "venue_detailed"
+        elif "venue_full" in df.columns:
+            venue_col = "venue_full"
+        elif "venue" in df.columns:
+            venue_col = "venue"
+        else:
             return OlympicsVisualizations._create_empty_chart("No venue data")
         
         # Count events by venue

@@ -120,6 +120,10 @@ class OlympicsDataProcessor:
         if "venue" not in df.columns and "venue_full" in df.columns:
             df["venue"] = df["venue_full"]
         
+        # Add detailed categorization for better visualizations
+        df = OlympicsDataProcessor._add_discipline_categories(df)
+        df = OlympicsDataProcessor._add_venue_categories(df)
+        
         # Filter out events with unknown/invalid sport codes
         if "sport_code" in df.columns:
             df = df[df["sport_code"].notna()].copy()
@@ -145,6 +149,65 @@ class OlympicsDataProcessor:
         if dedup_cols and len(df) > 0:
             df = df.drop_duplicates(subset=dedup_cols, keep='first')
         
+        return df
+    
+    @staticmethod
+    def _add_discipline_categories(df: pd.DataFrame) -> pd.DataFrame:
+        """Add detailed discipline categories for Freestyle/Snowboarding"""
+        if df.empty or "event_name" not in df.columns:
+            return df
+        
+        disciplines = []
+        for idx, row in df.iterrows():
+            if row.get('sport_code') == 'frs':
+                name_lower = str(row['event_name']).lower()
+                if 'mogul' in name_lower:
+                    disciplines.append('Freestyle - Moguls')
+                elif 'aerial' in name_lower:
+                    disciplines.append('Freestyle - Aerials')
+                elif 'slopestyle' in name_lower:
+                    if 'freeski' in name_lower:
+                        disciplines.append('Freestyle - Slopestyle')
+                    else:
+                        disciplines.append('Snowboard - Slopestyle')
+                elif 'halfpipe' in name_lower or ' hp ' in name_lower:
+                    disciplines.append('Snowboard - Halfpipe')
+                elif 'big air' in name_lower or ' ba ' in name_lower:
+                    if 'freeski' in name_lower:
+                        disciplines.append('Freestyle - Big Air')
+                    else:
+                        disciplines.append('Snowboard - Big Air')
+                elif 'cross' in name_lower or 'sbx' in name_lower:
+                    disciplines.append('Snowboard - Cross')
+                elif 'parallel' in name_lower or 'pgs' in name_lower:
+                    disciplines.append('Snowboard - Parallel')
+                else:
+                    disciplines.append('Freestyle Skiing')
+            else:
+                sport_name = OlympicsDataProcessor.get_sport_name(row.get('sport_code', ''))
+                disciplines.append(sport_name)
+        
+        df['discipline_detailed'] = disciplines
+        return df
+    
+    @staticmethod
+    def _add_venue_categories(df: pd.DataFrame) -> pd.DataFrame:
+        """Add detailed venue categories for better distribution"""
+        if df.empty or "venue_full" not in df.columns:
+            return df
+        
+        venue_categories = []
+        for venue in df['venue_full']:
+            venue_str = str(venue)
+            if 'Livigno' in venue_str:
+                if 'Aerials' in venue_str or 'Moguls' in venue_str:
+                    venue_categories.append('Livigno - Aerials & Moguls Park')
+                else:
+                    venue_categories.append('Livigno - Snow Park')
+            else:
+                venue_categories.append(venue_str)
+        
+        df['venue_detailed'] = venue_categories
         return df
     
     @staticmethod

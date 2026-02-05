@@ -209,8 +209,8 @@ def render_header():
     <div style='text-align: center; padding: 1rem; background-color: #f0f8ff; border-radius: 10px; margin: 1rem 0;'>
         <h4 style='color: #1e3a8a; margin-bottom: 0.5rem;'>🎿 Welcome to the Olympic Experience! ⛷️</h4>
         <p style='color: #374151; font-size: 1.1rem;'>
-            Join us in following the journey of <strong>90+ nations</strong> competing across <strong>16 winter sports</strong>! 
-            Track your favorite athletes, discover exciting events, and celebrate every thrilling moment together. 
+            Join me in following the journey of <strong>90+ nations</strong> competing across <strong>16 winter sports</strong>! 
+            Track and discover exciting events, and celebrate every thrilling moment together. 
             <strong>Let the Games begin!</strong> 🏆
         </p>
     </div>
@@ -222,11 +222,11 @@ def render_header():
     
     with col_left:
         st.markdown("""
-        <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; height: 200px; background-color: white;'>
+        <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; min-height: 200px; background-color: white; display: flex; flex-direction: column;'>
             <h4 style='color: #1e3a8a; margin-top: 0;'>📰 Official Olympics Website</h4>
-            <p style='color: #6b7280;'>Get official news, schedules, and athlete profiles</p>
+            <p style='color: #6b7280; flex-grow: 1;'>Get official news, schedules, and athlete profiles</p>
             <a href='https://www.olympics.com/en/milano-cortina-2026' target='_blank' style='text-decoration: none;'>
-                <div style='background-color: #3b82f6; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; margin-top: 1rem; font-weight: bold;'>
+                <div style='background-color: #3b82f6; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; font-weight: bold;'>
                     Visit Olympics.com →
                 </div>
             </a>
@@ -235,11 +235,11 @@ def render_header():
     
     with col_right:
         st.markdown("""
-        <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; height: 200px; background-color: white;'>
+        <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; min-height: 200px; background-color: white; display: flex; flex-direction: column;'>
             <h4 style='color: #1e3a8a; margin-top: 0;'>🎥 Official YouTube Channel</h4>
-            <p style='color: #6b7280;'>Watch highlights, athlete stories, and live coverage</p>
-            <a href='https://www.youtube.com/results?search_query=milano+cortina+2026+olympics' target='_blank' style='text-decoration: none;'>
-                <div style='background-color: #dc2626; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; margin-top: 1rem; font-weight: bold;'>
+            <p style='color: #6b7280; flex-grow: 1;'>Watch highlights, athlete stories, and live coverage</p>
+            <a href='https://www.youtube.com/@Olympics/videos' target='_blank' style='text-decoration: none;'>
+                <div style='background-color: #dc2626; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; font-weight: bold;'>
                     Watch on YouTube →
                 </div>
             </a>
@@ -338,9 +338,19 @@ def render_live_dashboard_tab():
     if selected_sport != "All":
         filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, selected_sport)
     
-    # Status filter
-    if status_filter != "All Events" and "status" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["status"] == status_filter]
+    # Status filter - categorize based on datetime
+    if status_filter != "All Events" and "datetime" in filtered_df.columns:
+        milan_tz = pytz.timezone("Europe/Rome")
+        now = datetime.now(milan_tz)
+        
+        if status_filter == "Completed":
+            filtered_df = filtered_df[filtered_df["datetime"] < now]
+        elif status_filter == "Upcoming":
+            filtered_df = filtered_df[filtered_df["datetime"] >= now]
+        elif status_filter == "Scheduled":
+            # Events more than 24 hours away
+            tomorrow = now + timedelta(days=1)
+            filtered_df = filtered_df[filtered_df["datetime"] >= tomorrow]
     
     # Remove events with None venue
     if "venue_full" in filtered_df.columns:
@@ -428,30 +438,28 @@ def render_live_dashboard_tab():
             # General Olympics statistics
             st.markdown("### 📖 Milano-Cortina 2026 Olympics Overview")
             
-            stats = OlympicsVisualizations.create_stats_cards(all_df)
-            
             st.markdown(f"""
             <div style='background-color: #f0f9ff; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #3b82f6;'>
                 <h4 style='color: #1e3a8a; margin-top: 0;'>🏔️ Welcome to the Winter Olympics!</h4>
                 <p style='color: #374151; font-size: 1.05rem; line-height: 1.6;'>
                     The <strong>Milano-Cortina 2026 Winter Olympics</strong> brings together the world's best athletes 
-                    competing across <strong>{stats['sports_count']} winter sports</strong> from 
+                    competing across <strong>16 winter sports</strong> from 
                     <strong>February 6-22, 2026</strong>.
                 </p>
                 <div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1rem 0;'>
                     <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
                         <div style='font-size: 2rem; color: #3b82f6;'>🎿</div>
-                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>{stats['sports_count']}</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>16</div>
                         <div style='color: #6b7280;'>Olympic Sports</div>
                     </div>
                     <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
                         <div style='font-size: 2rem; color: #3b82f6;'>📅</div>
-                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>{stats['total_events']}</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>608+</div>
                         <div style='color: #6b7280;'>Total Events</div>
                     </div>
                     <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
                         <div style='font-size: 2rem; color: #3b82f6;'>🌍</div>
-                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>{stats['countries_count']}</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>90+</div>
                         <div style='color: #6b7280;'>Nations Competing</div>
                     </div>
                     <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
@@ -1142,6 +1150,41 @@ def main():
     # Analytics tab - removed
     # with tab5:
     #     render_analytics_tab()
+    
+    # About Me Section - PowerPoint Presentation
+    st.markdown("---")
+    st.markdown("### 👤 About Me - Through My Olympic Lens")
+    st.markdown("""
+    <div style='background-color: #f8f9fa; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #6366f1;'>
+        <p style='color: #374151; font-size: 1rem; line-height: 1.6; margin: 0;'>
+            Want to learn more about me and my passion for winter sports? Check out my presentation on 
+            Olympic downhill skiing - it features interactive content including embedded YouTube videos 
+            showcasing the excitement and technical precision of alpine skiing. 🎿
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Provide download link for the PowerPoint
+    try:
+        ppt_path = "src/MWN Olympic Games downhill skiing presentation 2126.pptx"
+        with open(ppt_path, "rb") as file:
+            ppt_data = file.read()
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.download_button(
+                label="📥 Download My Olympic Presentation (Interactive PPT)",
+                data=ppt_data,
+                file_name="Olympic_Downhill_Skiing_Presentation.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                help="Download to view embedded YouTube videos and interactive content",
+                use_container_width=True
+            )
+            st.caption("💡 Open in PowerPoint or Google Slides to experience the embedded videos!")
+    except FileNotFoundError:
+        st.warning("⚠️ Presentation file not found. Please ensure the file exists in the src/ directory.")
     
     # Footer
     st.markdown("---")
