@@ -195,19 +195,18 @@ def fetch_country_events(country_code: str):
 
 def render_header():
     """Render page header"""
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col1:
-        st.write("")
-    with col2:
-        st.markdown("# 🏅 MILANO-CORTINA 2026")
-        st.markdown("### Winter Olympics Live Dashboard")
-    with col3:
-        st.write("")
+    # Center-aligned header
+    st.markdown("""
+    <div style='text-align: center;'>
+        <h1 style='color: #1e3a8a; margin-bottom: 0.3rem;'>🏅 MILANO-CORTINA 2026</h1>
+        <h3 style='color: #374151; margin-bottom: 0.5rem;'>Winter Olympics Live Dashboard</h3>
+        <h4 style='color: #1e3a8a; margin-bottom: 0.5rem;'>🎿 Welcome to the Olympic Experience! ⛷️</h4>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Friendly invitation
     st.markdown("""
     <div style='text-align: center; padding: 1rem; background-color: #f0f8ff; border-radius: 10px; margin: 1rem 0;'>
-        <h4 style='color: #1e3a8a; margin-bottom: 0.5rem;'>🎿 Welcome to the Olympic Experience! ⛷️</h4>
         <p style='color: #374151; font-size: 1.1rem;'>
             Join me in following the journey of <strong>90+ nations</strong> competing across <strong>16 winter sports</strong>! 
             Track and discover exciting events, and celebrate every thrilling moment together. 
@@ -357,7 +356,8 @@ def render_live_dashboard_tab():
         filtered_df = filtered_df[~filtered_df["venue_full"].str.contains("None, None", na=False)]
     
     # Display events
-    st.write(f"### 📅 Events ({len(filtered_df)} total)")
+    st.write(f"### 📅 Events")
+    st.caption("_Only events with complete venue information are counted and displayed_")
     
     if not filtered_df.empty:
         # Reset index and remove duplicates
@@ -484,17 +484,11 @@ def render_live_dashboard_tab():
             </div>
             """, unsafe_allow_html=True)
             
-            # Add sport selector button
-            st.markdown("#### 🎿 Explore Sports")
-            col_select1, col_select2, col_select3 = st.columns(3)
-            with col_select2:
-                if st.button("📋 Select a Sport to Learn More", use_container_width=True):
-                    st.info("👆 Use the 'Sport' dropdown in the Filters section above to select a sport")
         else:
             # Sport-specific description
             st.markdown(f"### 📖 About {sport_names_map.get(selected_sport, 'This Sport')}")
             
-            sport_info = StreamlitHelpers.get_sport_description(selected_sport, len(filtered_df))
+            sport_info = ValidationHelpers.get_sport_description(selected_sport, len(filtered_df))
             
             st.markdown(f"""
             <div style='background-color: #f0f9ff; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #3b82f6;'>
