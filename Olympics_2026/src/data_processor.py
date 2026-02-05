@@ -197,13 +197,32 @@ class OlympicsDataProcessor:
             return df
         
         venue_categories = []
-        for venue in df['venue_full']:
-            venue_str = str(venue)
+        
+        # First ensure we have discipline_detailed
+        if 'discipline_detailed' not in df.columns:
+            df = OlympicsDataProcessor._add_discipline_categories(df)
+        
+        for idx, row in df.iterrows():
+            venue_str = str(row['venue_full'])
+            
             if 'Livigno' in venue_str:
                 if 'Aerials' in venue_str or 'Moguls' in venue_str:
                     venue_categories.append('Livigno - Aerials & Moguls Park')
                 else:
-                    venue_categories.append('Livigno - Snow Park')
+                    # Split Livigno Snow Park by discipline
+                    discipline = row.get('discipline_detailed', '')
+                    if 'Slopestyle' in discipline:
+                        venue_categories.append('Livigno - Slopestyle Park')
+                    elif 'Halfpipe' in discipline:
+                        venue_categories.append('Livigno - Halfpipe Park')
+                    elif 'Big Air' in discipline:
+                        venue_categories.append('Livigno - Big Air Park')
+                    elif 'Cross' in discipline:
+                        venue_categories.append('Livigno - Cross Course')
+                    elif 'Parallel' in discipline:
+                        venue_categories.append('Livigno - Parallel Course')
+                    else:
+                        venue_categories.append('Livigno - Snow Park')
             else:
                 venue_categories.append(venue_str)
         

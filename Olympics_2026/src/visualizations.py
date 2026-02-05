@@ -431,14 +431,16 @@ class OlympicsVisualizations:
         fig.update_layout(
             title="🏅 Event Distribution by Discipline",
             height=600,
+            width=600,
             showlegend=True,
             template="plotly_white",
+            margin=dict(l=20, r=150, t=60, b=20),
             legend=dict(
                 orientation="v",
                 yanchor="middle",
                 y=0.5,
                 xanchor="left",
-                x=1.05
+                x=1.02
             )
         )
         
@@ -494,14 +496,16 @@ class OlympicsVisualizations:
         fig.update_layout(
             title="📍 Venue Usage Distribution",
             height=600,
+            width=600,
             showlegend=True,
             template="plotly_white",
+            margin=dict(l=20, r=150, t=60, b=20),
             legend=dict(
                 orientation="v",
                 yanchor="middle",
                 y=0.5,
                 xanchor="left",
-                x=1.05
+                x=1.02
             )
         )
         
