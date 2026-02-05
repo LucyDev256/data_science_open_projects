@@ -447,12 +447,6 @@ def render_live_dashboard_tab():
                     and each run is a separate scheduled event. This gives fans more opportunities to watch their 
                     favorite athletes compete!
                 </p>
-                <div style='background-color: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 1rem;'>
-                    <p style='color: #78350f; margin: 0;'>
-                        💡 <strong>Want to learn more about a specific sport?</strong> 
-                        Select a sport from the dropdown filter above to see detailed information about 
-                        competition formats, venues, and interesting facts!
-                    </p>
                 </div>
             </div>
             """, unsafe_allow_html=True)
