@@ -1139,7 +1139,7 @@ def main():
     with col2:
         st.markdown("""
         <a href='https://docs.google.com/presentation/d/1QY3LAVfN14sxP93kH2XjhYo-a2lylF0wZNsg0vtK3CU/edit?usp=sharing' target='_blank' style='text-decoration: none;'>
-            <div style='background-color: #6366f1; color: white; padding: 1rem; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: background-color 0.3s;'>
+            <div style='text-align: center; background-color: #6366f1; color: white; padding: 1rem; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: background-color 0.3s;'>
                 🎿 View My Olympic Presentation on Google Slides
             </div>
         </a>
