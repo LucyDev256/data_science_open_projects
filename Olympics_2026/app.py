@@ -204,6 +204,48 @@ def render_header():
     with col3:
         st.write("")
     
+    # Friendly invitation
+    st.markdown("""
+    <div style='text-align: center; padding: 1rem; background-color: #f0f8ff; border-radius: 10px; margin: 1rem 0;'>
+        <h4 style='color: #1e3a8a; margin-bottom: 0.5rem;'>🎿 Welcome to the Olympic Experience! ⛷️</h4>
+        <p style='color: #374151; font-size: 1.1rem;'>
+            Join us in following the journey of <strong>90+ nations</strong> competing across <strong>16 winter sports</strong>! 
+            Track your favorite athletes, discover exciting events, and celebrate every thrilling moment together. 
+            <strong>Let the Games begin!</strong> 🏆
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Official links section
+    st.markdown("### 🔗 Official Olympic Resources")
+    col_left, col_right = st.columns(2)
+    
+    with col_left:
+        st.markdown("""
+        <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; height: 200px; background-color: white;'>
+            <h4 style='color: #1e3a8a; margin-top: 0;'>📰 Official Olympics Website</h4>
+            <p style='color: #6b7280;'>Get official news, schedules, and athlete profiles</p>
+            <a href='https://www.olympics.com/en/milano-cortina-2026' target='_blank' style='text-decoration: none;'>
+                <div style='background-color: #3b82f6; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; margin-top: 1rem; font-weight: bold;'>
+                    Visit Olympics.com →
+                </div>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col_right:
+        st.markdown("""
+        <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; height: 200px; background-color: white;'>
+            <h4 style='color: #1e3a8a; margin-top: 0;'>🎥 Official YouTube Channel</h4>
+            <p style='color: #6b7280;'>Watch highlights, athlete stories, and live coverage</p>
+            <a href='https://www.youtube.com/results?search_query=milano+cortina+2026+olympics' target='_blank' style='text-decoration: none;'>
+                <div style='background-color: #dc2626; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; margin-top: 1rem; font-weight: bold;'>
+                    Watch on YouTube →
+                </div>
+            </a>
+        </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("---")
 
 
@@ -232,7 +274,7 @@ def render_live_dashboard_tab():
     
     # Filter bar
     st.markdown("### 🔍 Filters")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         # Date range filter
@@ -264,6 +306,14 @@ def render_live_dashboard_tab():
             key="live_sport_filter"
         )
     
+    with col3:
+        # Event status filter
+        status_filter = st.selectbox(
+            "Event Status",
+            options=["All Events", "Completed", "Upcoming", "Scheduled"],
+            key="status_filter"
+        )
+    
     st.markdown("---")
     
     # Fetch all events
@@ -287,6 +337,10 @@ def render_live_dashboard_tab():
     # Sport filter
     if selected_sport != "All":
         filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, selected_sport)
+    
+    # Status filter
+    if status_filter != "All Events" and "status" in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df["status"] == status_filter]
     
     # Remove events with None venue
     if "venue_full" in filtered_df.columns:
@@ -368,8 +422,92 @@ def render_live_dashboard_tab():
         timeline_fig = OlympicsVisualizations.create_past_future_bar(filtered_df)
         st.plotly_chart(timeline_fig, use_container_width=True)
         
+        # Sport Description Section
+        st.markdown("---")
+        if selected_sport == "All":
+            # General Olympics statistics
+            st.markdown("### 📖 Milano-Cortina 2026 Olympics Overview")
+            
+            stats = OlympicsVisualizations.create_stats_cards(all_df)
+            
+            st.markdown(f"""
+            <div style='background-color: #f0f9ff; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #3b82f6;'>
+                <h4 style='color: #1e3a8a; margin-top: 0;'>🏔️ Welcome to the Winter Olympics!</h4>
+                <p style='color: #374151; font-size: 1.05rem; line-height: 1.6;'>
+                    The <strong>Milano-Cortina 2026 Winter Olympics</strong> brings together the world's best athletes 
+                    competing across <strong>{stats['sports_count']} winter sports</strong> from 
+                    <strong>February 6-22, 2026</strong>.
+                </p>
+                <div style='display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1rem 0;'>
+                    <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
+                        <div style='font-size: 2rem; color: #3b82f6;'>🎿</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>{stats['sports_count']}</div>
+                        <div style='color: #6b7280;'>Olympic Sports</div>
+                    </div>
+                    <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
+                        <div style='font-size: 2rem; color: #3b82f6;'>📅</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>{stats['total_events']}</div>
+                        <div style='color: #6b7280;'>Total Events</div>
+                    </div>
+                    <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
+                        <div style='font-size: 2rem; color: #3b82f6;'>🌍</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>{stats['countries_count']}</div>
+                        <div style='color: #6b7280;'>Nations Competing</div>
+                    </div>
+                    <div style='background-color: white; padding: 1rem; border-radius: 8px;'>
+                        <div style='font-size: 2rem; color: #3b82f6;'>🏅</div>
+                        <div style='font-size: 1.5rem; font-weight: bold; color: #1e3a8a;'>109</div>
+                        <div style='color: #6b7280;'>Medal Events</div>
+                    </div>
+                </div>
+                <p style='color: #374151; margin-top: 1rem;'>
+                    <strong>🎯 Why so many events?</strong> Each Olympic competition includes multiple rounds - 
+                    qualifications, semifinals, and finals. Some sports like Freestyle Skiing have 2-3 runs per round, 
+                    and each run is a separate scheduled event. This gives fans more opportunities to watch their 
+                    favorite athletes compete!
+                </p>
+                <div style='background-color: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 1rem;'>
+                    <p style='color: #78350f; margin: 0;'>
+                        💡 <strong>Want to learn more about a specific sport?</strong> 
+                        Select a sport from the dropdown filter above to see detailed information about 
+                        competition formats, venues, and interesting facts!
+                    </p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Add sport selector button
+            st.markdown("#### 🎿 Explore Sports")
+            col_select1, col_select2, col_select3 = st.columns(3)
+            with col_select2:
+                if st.button("📋 Select a Sport to Learn More", use_container_width=True):
+                    st.info("👆 Use the 'Sport' dropdown in the Filters section above to select a sport")
+        else:
+            # Sport-specific description
+            st.markdown(f"### 📖 About {sport_names_map.get(selected_sport, 'This Sport')}")
+            
+            sport_info = StreamlitHelpers.get_sport_description(selected_sport, len(filtered_df))
+            
+            st.markdown(f"""
+            <div style='background-color: #f0f9ff; padding: 1.5rem; border-radius: 10px; border-left: 5px solid #3b82f6;'>
+                <h3 style='color: #1e3a8a; margin-top: 0;'>{sport_info['emoji']} {sport_info['name']}</h3>
+                <p style='color: #374151; font-size: 1.1rem; margin-bottom: 1rem;'>
+                    {sport_info['description']}
+                </p>
+                <div style='background-color: white; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;'>
+                    {sport_info['details']}
+                </div>
+                <div style='background-color: #fef3c7; padding: 1rem; border-radius: 8px; margin-top: 1rem;'>
+                    <p style='color: #78350f; margin: 0;'>
+                        {sport_info['fun_fact']}
+                    </p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
     else:
         st.info("No events match the selected filters")
+
 
 
 def render_podium_tab():
