@@ -1135,7 +1135,12 @@ def main():
     
     # Provide download link for the PowerPoint
     try:
-        ppt_path = "src/MWN Olympic Games downhill skiing presentation 2126.pptx"
+        # Use absolute path
+        ppt_path = os.path.join(os.path.dirname(__file__), "src", "MWN Olympic Games downhill skiing presentation 2126.pptx")
+        if not os.path.exists(ppt_path):
+            # Try relative path from current working directory
+            ppt_path = "src/MWN Olympic Games downhill skiing presentation 2126.pptx"
+        
         with open(ppt_path, "rb") as file:
             ppt_data = file.read()
         
@@ -1150,8 +1155,10 @@ def main():
                 use_container_width=True
             )
             st.caption("💡 Open in PowerPoint or Google Slides to experience the embedded videos!")
-    except FileNotFoundError:
-        st.warning("⚠️ Presentation file not found. Please ensure the file exists in the src/ directory.")
+    except FileNotFoundError as e:
+        st.warning(f"⚠️ Presentation file not found. Tried: {ppt_path}")
+    except Exception as e:
+        st.error(f"Error loading presentation: {str(e)}")
     
     # Footer
     st.markdown("---")

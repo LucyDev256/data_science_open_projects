@@ -430,7 +430,7 @@ class OlympicsVisualizations:
         
         fig.update_layout(
             title="🏅 Event Distribution by Discipline",
-            height=500,
+            height=600,
             showlegend=True,
             template="plotly_white",
             legend=dict(
@@ -493,7 +493,7 @@ class OlympicsVisualizations:
         
         fig.update_layout(
             title="📍 Venue Usage Distribution",
-            height=500,
+            height=600,
             showlegend=True,
             template="plotly_white",
             legend=dict(
