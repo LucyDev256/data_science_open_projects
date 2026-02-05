@@ -61,7 +61,7 @@ def init_api_client():
     return MilanoCortina2026API(api_key)
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=14400)  # 4 hours - optimized for Basic plan (10k requests/month)
 def fetch_all_events():
     """Fetch all events from API with caching"""
     api = init_api_client()
@@ -86,7 +86,7 @@ def fetch_all_events():
         return {}
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=14400)  # 4 hours - optimized for Basic plan
 def fetch_today_events():
     """Fetch today's events"""
     api = init_api_client()
@@ -168,7 +168,7 @@ def fetch_all_countries():
         return {"success": False, "countries": []}
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=14400)  # 4 hours - optimized for Basic plan
 def fetch_country_events(country_code: str):
     """Fetch events for a specific country"""
     api = init_api_client()
@@ -394,6 +394,33 @@ def render_live_dashboard_tab():
             file_name=f"olympics_events_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
         )
+        
+        # Event Progress Bar
+        st.markdown("<br>", unsafe_allow_html=True)
+        if "status" in filtered_df.columns:
+            completed_count = len(filtered_df[filtered_df["status"] == "Completed"])
+            total_count = len(filtered_df)
+            upcoming_count = total_count - completed_count
+            
+            if total_count > 0:
+                completed_pct = (completed_count / total_count) * 100
+                
+                st.markdown("**Event Progress**")
+                col_prog1, col_prog2 = st.columns([3, 1])
+                with col_prog1:
+                    # Create progress bar using HTML/CSS
+                    st.markdown(f"""
+                    <div style='background-color: #e5e7eb; border-radius: 10px; overflow: hidden; height: 30px; display: flex;'>
+                        <div style='background-color: #9ca3af; width: {completed_pct}%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9rem;'>
+                            {completed_count if completed_pct > 15 else ''}
+                        </div>
+                        <div style='background-color: #10b981; width: {100-completed_pct}%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9rem;'>
+                            {upcoming_count if (100-completed_pct) > 15 else ''}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col_prog2:
+                    st.markdown(f"<div style='text-align: right; color: #6b7280; font-size: 0.9rem;'>{completed_count}/{total_count} completed</div>", unsafe_allow_html=True)
         
         # Visualizations section
         st.markdown("---")
