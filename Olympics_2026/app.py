@@ -1134,17 +1134,41 @@ def main():
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Link to Google Drive presentation
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    # Presentation options - View online or Download
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Google Drive link
         st.markdown("""
         <a href='https://docs.google.com/presentation/d/1QY3LAVfN14sxP93kH2XjhYo-a2lylF0wZNsg0vtK3CU/edit?usp=sharing' target='_blank' style='text-decoration: none;'>
-            <div style='text-align: center; background-color: #6366f1; color: white; padding: 1rem; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: background-color 0.3s;'>
-                🎿 View My Olympic Presentation on Google Slides
+            <div style='background-color: #6366f1; color: white; padding: 1rem; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1rem; cursor: pointer; transition: background-color 0.3s;'>
+                🎿 View on Google Slides
             </div>
         </a>
         """, unsafe_allow_html=True)
-        st.caption("💡 Click to view the interactive presentation with embedded YouTube videos!")
+        st.caption("💡 View online with embedded videos")
+    
+    with col2:
+        # Download PowerPoint file
+        try:
+            ppt_path = os.path.join(os.path.dirname(__file__), "src", "MWN Olympic Games downhill skiing presentation 2126.pptx")
+            if not os.path.exists(ppt_path):
+                ppt_path = "src/MWN Olympic Games downhill skiing presentation 2126.pptx"
+            
+            with open(ppt_path, "rb") as file:
+                ppt_data = file.read()
+            
+            st.download_button(
+                label="📥 Download PowerPoint",
+                data=ppt_data,
+                file_name="Olympic_Downhill_Skiing_Presentation.pptx",
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                help="Download to present offline",
+                use_container_width=True
+            )
+            st.caption("📂 Download for offline viewing")
+        except Exception as e:
+            st.caption("⚠️ Download unavailable")
     
     # Footer
     st.markdown("---")
