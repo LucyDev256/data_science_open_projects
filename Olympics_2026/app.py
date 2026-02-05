@@ -273,7 +273,7 @@ def render_live_dashboard_tab():
     
     # Filter bar
     st.markdown("### 🔍 Filters")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         # Date range filter
@@ -305,14 +305,6 @@ def render_live_dashboard_tab():
             key="live_sport_filter"
         )
     
-    with col3:
-        # Event status filter
-        status_filter = st.selectbox(
-            "Event Status",
-            options=["All Events", "Completed", "Upcoming", "Scheduled"],
-            key="status_filter"
-        )
-    
     st.markdown("---")
     
     # Fetch all events
@@ -336,20 +328,6 @@ def render_live_dashboard_tab():
     # Sport filter
     if selected_sport != "All":
         filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, selected_sport)
-    
-    # Status filter - categorize based on datetime
-    if status_filter != "All Events" and "datetime" in filtered_df.columns:
-        milan_tz = pytz.timezone("Europe/Rome")
-        now = datetime.now(milan_tz)
-        
-        if status_filter == "Completed":
-            filtered_df = filtered_df[filtered_df["datetime"] < now]
-        elif status_filter == "Upcoming":
-            filtered_df = filtered_df[filtered_df["datetime"] >= now]
-        elif status_filter == "Scheduled":
-            # Events more than 24 hours away
-            tomorrow = now + timedelta(days=1)
-            filtered_df = filtered_df[filtered_df["datetime"] >= tomorrow]
     
     # Remove events with None venue
     if "venue_full" in filtered_df.columns:
@@ -426,11 +404,6 @@ def render_live_dashboard_tab():
             # Venue usage pie chart
             venue_fig = OlympicsVisualizations.create_venue_distribution_pie(filtered_df)
             st.plotly_chart(venue_fig, use_container_width=True)
-        
-        # Horizontal bar chart for past vs future events
-        st.markdown("### ⏱️ Event Timeline Status")
-        timeline_fig = OlympicsVisualizations.create_past_future_bar(filtered_df)
-        st.plotly_chart(timeline_fig, use_container_width=True)
         
         # Sport Description Section
         st.markdown("---")
