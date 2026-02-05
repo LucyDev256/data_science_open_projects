@@ -1115,7 +1115,7 @@ def main():
         <p style='color: #374151; font-size: 1rem; line-height: 1.6; margin: 0;'>
             Want to learn more about me and my passion for winter sports? Check out my presentation on 
             Olympic downhill skiing - it features interactive content including embedded YouTube videos 
-            showcasing the excitement and technical precision of alpine skiing. 🎿
+            showcasing the excitement and technical precision of alpine skiing. 🎿 See you you on the slopes! Lucy
         </p>
     </div>
     """, unsafe_allow_html=True)
