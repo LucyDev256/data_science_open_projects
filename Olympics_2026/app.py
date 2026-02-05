@@ -294,7 +294,7 @@ def render_live_dashboard_tab():
         for sport in sports_list:
             if isinstance(sport, dict) and sport.get("code"):
                 code = sport.get("code")
-                name = OlympicsDataProcessor.get_sport_name(code)
+                name = OlympicsDataProcessor.get_sport_name(code).strip()
                 sport_codes.append(code)
                 sport_names_map[code] = name
         
@@ -329,13 +329,8 @@ def render_live_dashboard_tab():
     if selected_sport != "All":
         filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, selected_sport)
     
-    # Remove events with None venue
-    if "venue_full" in filtered_df.columns:
-        filtered_df = filtered_df[~filtered_df["venue_full"].str.contains("None, None", na=False)]
-    
     # Display events
     st.write(f"### 📅 Events")
-    st.caption("_Only events with complete venue information are counted and displayed_")
     
     if not filtered_df.empty:
         # Reset index and remove duplicates
