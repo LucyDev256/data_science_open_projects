@@ -237,7 +237,7 @@ def render_header():
         <div style='border: 2px solid #e5e7eb; border-radius: 10px; padding: 1rem; min-height: 200px; background-color: white; display: flex; flex-direction: column;'>
             <h4 style='color: #1e3a8a; margin-top: 0;'>🎥 Official YouTube Channel</h4>
             <p style='color: #6b7280; flex-grow: 1;'>Watch highlights, athlete stories, and live coverage</p>
-            <a href='https://www.youtube.com/@Olympics/videos' target='_blank' style='text-decoration: none;'>
+            <a href='https://www.youtube.com/@Olympics/streams' target='_blank' style='text-decoration: none;'>
                 <div style='background-color: #dc2626; color: white; padding: 0.75rem; border-radius: 5px; text-align: center; font-weight: bold;'>
                     Watch on YouTube →
                 </div>
