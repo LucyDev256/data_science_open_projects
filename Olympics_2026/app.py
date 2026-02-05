@@ -273,7 +273,7 @@ def render_live_dashboard_tab():
     
     # Filter bar
     st.markdown("### 🔍 Filters")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         # Date range filter
@@ -305,6 +305,14 @@ def render_live_dashboard_tab():
             key="live_sport_filter"
         )
     
+    with col3:
+        # Event status filter
+        status_filter = st.selectbox(
+            "Event Status",
+            options=["All Events", "Completed", "Upcoming", "Today", "Scheduled"],
+            key="status_filter"
+        )
+    
     st.markdown("---")
     
     # Fetch all events
@@ -328,6 +336,10 @@ def render_live_dashboard_tab():
     # Sport filter
     if selected_sport != "All":
         filtered_df = OlympicsDataProcessor.filter_by_sport(filtered_df, selected_sport)
+    
+    # Status filter
+    if status_filter != "All Events" and "status" in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df["status"] == status_filter].copy()
     
     # Display events
     st.write(f"### 📅 Events")
