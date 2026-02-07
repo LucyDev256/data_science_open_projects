@@ -367,6 +367,7 @@ def render_live_dashboard_tab():
         event_names = list(filtered_df["event_name"].astype(str)) if "event_name" in filtered_df.columns else ["N/A"] * len(filtered_df)
         sport_codes = filtered_df["sport_code"] if "sport_code" in filtered_df.columns else pd.Series(["N/A"] * len(filtered_df))
         sports = [str(OlympicsDataProcessor.get_sport_name(code)) for code in sport_codes]
+        disciplines = list(filtered_df["discipline_detailed"].astype(str)) if "discipline_detailed" in filtered_df.columns else sports
         times = list(filtered_df["datetime"].dt.strftime("%b %d, %H:%M")) if "datetime" in filtered_df.columns else ["N/A"] * len(filtered_df)
         venue_col = "venue_full" if "venue_full" in filtered_df.columns else "venue"
         venues = list(filtered_df[venue_col].astype(str)) if venue_col in filtered_df.columns else ["N/A"] * len(filtered_df)
@@ -375,6 +376,7 @@ def render_live_dashboard_tab():
         display_df = pd.DataFrame({
             "event_name": event_names,
             "sport": sports,
+            "discipline": disciplines,
             "date_time (CET)": times,
             "venue": venues,
             "status": statuses
@@ -394,6 +396,27 @@ def render_live_dashboard_tab():
             file_name=f"olympics_events_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv"
         )
+        
+        # Event Progress Section
+        if "status" in filtered_df.columns:
+            st.markdown("<br>", unsafe_allow_html=True)
+            completed_count = len(filtered_df[filtered_df["status"] == "Completed"])
+            total_count = len(filtered_df)
+            remaining_count = total_count - completed_count
+            
+            if total_count > 0:
+                progress_pct = completed_count / total_count
+                
+                # Display metrics and progress bar
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.metric("Total Events", total_count)
+                with col_m2:
+                    st.metric("Completed", completed_count, delta=None)
+                with col_m3:
+                    st.metric("Remaining", remaining_count, delta=None)
+                
+                st.progress(progress_pct, text=f"Progress: {completed_count}/{total_count} events completed ({progress_pct:.1%})")
         
         # Visualizations section
         st.markdown("---")
