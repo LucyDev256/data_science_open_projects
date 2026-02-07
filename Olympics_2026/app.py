@@ -398,9 +398,15 @@ def render_live_dashboard_tab():
         )
         
         # Event Progress Section
-        if "status" in filtered_df.columns:
+        if "datetime" in filtered_df.columns:
             st.markdown("<br>", unsafe_allow_html=True)
-            completed_count = len(filtered_df[filtered_df["status"] == "Completed"])
+            
+            # Get current time in CET timezone
+            milan_tz = pytz.timezone("Europe/Rome")
+            now_cet = datetime.now(milan_tz)
+            
+            # Count past and future events based on datetime
+            completed_count = len(filtered_df[filtered_df["datetime"] < now_cet])
             total_count = len(filtered_df)
             remaining_count = total_count - completed_count
             
@@ -412,9 +418,9 @@ def render_live_dashboard_tab():
                 with col_m1:
                     st.metric("Total Events", total_count)
                 with col_m2:
-                    st.metric("Completed", completed_count, delta=None)
+                    st.metric("Completed (Past)", completed_count, delta=None)
                 with col_m3:
-                    st.metric("Remaining", remaining_count, delta=None)
+                    st.metric("Upcoming (Future)", remaining_count, delta=None)
                 
                 st.progress(progress_pct, text=f"Progress: {completed_count}/{total_count} events completed ({progress_pct:.1%})")
         
