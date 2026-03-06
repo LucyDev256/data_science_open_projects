@@ -1,0 +1,15 @@
+# Core data science libraries
+numpy>=1.21.0
+pandas>=1.3.0
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# Machine learning
+scikit-learn>=1.0.1
+
+# Jupyter notebooks
+jupyter>=1.0.0
+ipython>=7.31.1
+
+# Data validation
+scipy>=1.8.0
