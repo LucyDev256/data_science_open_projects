@@ -1,0 +1,77 @@
+# Debezium CDC to BigQuery Sink Connector
+# Streams CDC events from Kafka to BigQuery
+
+name: bigquery-sink-men-health
+config:
+  connector.class: com.wepay.kafka.connect.bigquery.BigQuerySinkConnector
+  
+  # Kafka topics to consume
+  topics: >
+    telehealth.men.public.products,
+    telehealth.men.public.inventory,
+    telehealth.men.public.prescriptions,
+    telehealth.men.public.orders,
+    telehealth.men.public.order_line_items,
+    telehealth.men.public.consultations,
+    telehealth.men.public.patients,
+    telehealth.men.public.customer_profiles
+  
+  # BigQuery configuration
+  project: telehealth-prod-project
+  defaultDataset: bronze
+  keySource: FILE
+  keyFile: /secrets/bigquery-service-account.json
+  
+  # Auto-create tables in BigQuery
+  autoCreateTables: true
+  autoUpdateSchemas: true
+  
+  # Naming strategy
+  sanitizeTopics: true
+  sanitizeFieldNames: true
+  
+  # Table naming: bronze_men_<table_name>
+  topicToTableMap: >
+    telehealth.men.public.products:bronze_men_products,
+    telehealth.men.public.inventory:bronze_men_inventory,
+    telehealth.men.public.prescriptions:bronze_men_prescriptions,
+    telehealth.men.public.orders:bronze_men_orders,
+    telehealth.men.public.order_line_items:bronze_men_order_line_items,
+    telehealth.men.public.consultations:bronze_men_consultations,
+    telehealth.men.public.patients:bronze_men_patients,
+    telehealth.men.public.customer_profiles:bronze_men_customer_profiles
+  
+  # BigQuery write settings
+  allowNewBigQueryFields: true
+  allowBigQueryRequiredFieldRelaxation: true
+  allowSchemaUnionization: true
+  
+  # Upsert mode (streaming inserts)
+  upsertEnabled: false
+  insertPartitionTime: true
+  
+  # Batching
+  bufferSize: 100000
+  maxWriteSize: 10000
+  tableWriteWait: 1000
+  
+  # Time partitioning (daily partitions on updated_at)
+  timePartitioningType: DAY
+  
+  # Clustering
+  clusteringPartitionFieldNames: id,created_at
+  
+  # Error handling
+  errors.tolerance: all
+  errors.log.enable: true
+  errors.deadletterqueue.topic.name: dlq-bigquery-men-health
+  errors.deadletterqueue.context.headers.enable: true
+  
+  # Performance
+  tasks.max: 4
+  
+  # Converters
+  key.converter: org.apache.kafka.connect.json.JsonConverter
+  value.converter: org.apache.kafka.connect.json.JsonConverter
+  key.converter.schemas.enable: true
+  value.converter.schemas.enable: true

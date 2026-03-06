@@ -1,0 +1,414 @@
+// Shared Resources Database Schema
+// Database: telehealth_shared_prod
+// Contains data shared across men's and women's health brands
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/shared-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SHARED_DATABASE_URL")
+}
+
+// ============================================
+// PROVIDER/PRACTITIONER DATA
+// ============================================
+
+model Provider {
+  id                String   @id @default(uuid())
+  
+  // Basic Information
+  firstName         String
+  lastName          String
+  credentials       String // MD, DO, NP, PA, etc.
+  specialty         String[]
+  
+  // Licensing
+  licenses          ProviderLicense[]
+  deaRegistration   DeaRegistration?
+  
+  // Contact
+  email             String   @unique
+  phone             String
+  
+  // Employment
+  employmentStatus  EmploymentStatus
+  hireDate          DateTime?
+  terminationDate   DateTime?
+  
+  // Scheduling
+  availability      ProviderAvailability[]
+  maxDailyConsults  Int      @default(30)
+  
+  // Performance
+  metrics           ProviderMetrics?
+  
+  // Status
+  isActive          Boolean  @default(true)
+  canPrescribeControlled Boolean @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([isActive])
+  @@map("providers")
+}
+
+enum EmploymentStatus {
+  EMPLOYEE
+  CONTRACTOR
+  PART_TIME
+  TERMINATED
+}
+
+model ProviderLicense {
+  id                String   @id @default(uuid())
+  providerId        String
+  provider          Provider @relation(fields: [providerId], references: [id])
+  
+  state             String   @db.Char(2)
+  licenseNumber     String
+  licenseType       LicenseType
+  
+  issueDate         DateTime
+  expirationDate    DateTime
+  verificationDate  DateTime @default(now())
+  
+  status            LicenseStatus
+  isActive          Boolean  @default(true)
+  
+  // Prescriptive Authority
+  canPrescribe      Boolean  @default(true)
+  prescriptiveAuthority String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([providerId, state])
+  @@index([state])
+  @@index([expirationDate])
+  @@map("provider_licenses")
+}
+
+enum LicenseType {
+  MEDICAL_DOCTOR
+  DOCTOR_OSTEOPATHY
+  NURSE_PRACTITIONER
+  PHYSICIAN_ASSISTANT
+  PHARMACIST
+}
+
+enum LicenseStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  REVOKED
+  PENDING_VERIFICATION
+}
+
+model DeaRegistration {
+  id                String   @id @default(uuid())
+  providerId        String   @unique
+  provider          Provider @relation(fields: [providerId], references: [id])
+  
+  deaNumber         String   @unique
+  issueDate         DateTime
+  expirationDate    DateTime
+  
+  scheduleII        Boolean  @default(false)
+  scheduleIII       Boolean  @default(false)
+  scheduleIV        Boolean  @default(false)
+  scheduleV         Boolean  @default(false)
+  
+  status            String
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([expirationDate])
+  @@map("dea_registrations")
+}
+
+model ProviderAvailability {
+  id                String   @id @default(uuid())
+  providerId        String
+  provider          Provider @relation(fields: [providerId], references: [id])
+  
+  dayOfWeek         Int // 0-6 (Sunday-Saturday)
+  startTime         String // HH:MM format
+  endTime           String
+  timezone          String   @default("America/New_York")
+  
+  consultationType  String[] // ["async", "video"]
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([providerId, dayOfWeek])
+  @@map("provider_availability")
+}
+
+model ProviderMetrics {
+  id                      String   @id @default(uuid())
+  providerId              String   @unique
+  provider                Provider @relation(fields: [providerId], references: [id])
+  
+  // Volume Metrics
+  totalConsultations      Int      @default(0)
+  consultationsThisMonth  Int      @default(0)
+  totalPrescriptions      Int      @default(0)
+  
+  // Quality Metrics
+  avgConsultationTime     Int? // in minutes
+  patientSatisfactionScore Decimal? @db.Decimal(3, 2)
+  
+  // Turnaround Time
+  avgResponseTime         Int? // in minutes
+  
+  // Compliance
+  chartCompletionRate     Decimal? @db.Decimal(5, 2)
+  lastComplianceReview    DateTime?
+  
+  // Calculated At
+  lastCalculated          DateTime @default(now())
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  @@map("provider_metrics")
+}
+
+// ============================================
+// CLINICAL PROTOCOLS
+// ============================================
+
+model ClinicalProtocol {
+  id                String   @id @default(uuid())
+  
+  name              String
+  category          String
+  version           String
+  
+  // Protocol Details
+  description       String
+  indications       String[]
+  contraindications String[]
+  assessmentCriteria Json
+  
+  // Treatment Guidelines
+  treatmentOptions  Json // Structured treatment pathways
+  prescribingGuidelines Json
+  monitoringRequirements Json
+  
+  // Safety
+  warningsAndPrecautions String
+  drugInteractionCheck Boolean @default(true)
+  
+  // Compliance
+  approvedBy        String
+  approvedAt        DateTime
+  effectiveDate     DateTime
+  reviewDate        DateTime?
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isActive])
+  @@map("clinical_protocols")
+}
+
+// ============================================
+// REFERENCE DATA
+// ============================================
+
+model StateRegulation {
+  id                String   @id @default(uuid())
+  
+  state             String   @db.Char(2) @unique
+  stateName         String
+  
+  // Telehealth Regulations
+  telehealthAllowed Boolean  @default(true)
+  asyncAllowed      Boolean  @default(true)
+  videoRequired     Boolean  @default(false)
+  
+  // Prescribing Rules
+  initialRxAllowed  Boolean  @default(true)
+  controlledRxAllowed Boolean @default(false)
+  
+  // Specific Product Restrictions
+  glp1Allowed       Boolean  @default(true)
+  edMedsAllowed     Boolean  @default(true)
+  trtAllowed        Boolean  @default(true)
+  
+  // Provider Requirements
+  providerMustBeLicensedInState Boolean @default(true)
+  
+  // Notes
+  regulatoryNotes   String?
+  lastReviewDate    DateTime @default(now())
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("state_regulations")
+}
+
+model DrugFormulary {
+  id                String   @id @default(uuid())
+  
+  // Drug Identity
+  ndcCode           String   @unique
+  genericName       String
+  brandName         String?
+  
+  // Classification
+  drugClass         String
+  therapeuticCategory String
+  deaSchedule       String? // II, III, IV, V
+  
+  // FDA Information
+  fdaApproved       Boolean  @default(true)
+  fdaApprovalDate   DateTime?
+  
+  // Clinical
+  indications       String[]
+  contraindications String[]
+  blackBoxWarning   Boolean  @default(false)
+  pregnancyCategory String?
+  
+  // Dosing
+  standardDosages   Json // Array of standard dosing options
+  dosageForm        String[]
+  route             String[]
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([genericName])
+  @@index([drugClass])
+  @@map("drug_formulary")
+}
+
+model IcdCode {
+  id                String   @id @default(uuid())
+  
+  code              String   @unique
+  version           String   @default("ICD-10")
+  description       String
+  category          String
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([category])
+  @@map("icd_codes")
+}
+
+model CptCode {
+  id                String   @id @default(uuid())
+  
+  code              String   @unique
+  description       String
+  category          String
+  
+  // Billing
+  baseReimbursement Decimal? @db.Decimal(10, 2)
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("cpt_codes")
+}
+
+model InsurancePayer {
+  id                String   @id @default(uuid())
+  
+  payerName         String
+  payerId           String   @unique
+  payerType         PayerType
+  
+  // Coverage
+  statesCovered     String[]
+  productsCovered   String[]
+  
+  // Integration
+  eligibilityApiEndpoint String?
+  claimsApiEndpoint String?
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("insurance_payers")
+}
+
+enum PayerType {
+  COMMERCIAL
+  MEDICARE
+  MEDICAID
+  TRICARE
+  OTHER
+}
+
+// ============================================
+// FULFILLMENT PARTNERS
+// ============================================
+
+model FulfillmentPartner {
+  id                String   @id @default(uuid())
+  
+  name              String
+  partnerType       PartnerType
+  
+  // Contact
+  contactName       String
+  contactEmail      String
+  contactPhone      String
+  
+  // Address
+  addressLine1      String
+  city              String
+  state             String   @db.Char(2)
+  zipCode           String
+  
+  // Capabilities
+  canCompound       Boolean  @default(false)
+  canShip           Boolean  @default(true)
+  statesLicensed    String[]
+  
+  // Integration
+  apiEndpoint       String?
+  apiKey            String? // Encrypted
+  
+  // Performance
+  avgFulfillmentTime Int? // in hours
+  successRate       Decimal? @db.Decimal(5, 2)
+  
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("fulfillment_partners")
+}
+
+enum PartnerType {
+  COMPOUNDING_PHARMACY
+  RETAIL_PHARMACY
+  MAIL_ORDER_PHARMACY
+  WHOLESALER
+}

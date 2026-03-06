@@ -1,0 +1,37 @@
+# BigQuery connection profile for dbt
+
+telehealth:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: telehealth-dev-project
+      dataset: analytics_dev
+      threads: 4
+      timeout_seconds: 300
+      location: US
+      priority: interactive
+      keyfile: /path/to/service-account-dev.json
+      
+    prod:
+      type: bigquery
+      method: service-account
+      project: telehealth-prod-project
+      dataset: analytics_prod
+      threads: 8
+      timeout_seconds: 600
+      location: US
+      priority: interactive
+      keyfile: /path/to/service-account-prod.json
+      
+    staging:
+      type: bigquery
+      method: service-account
+      project: telehealth-staging-project
+      dataset: analytics_staging
+      threads: 4
+      timeout_seconds: 300
+      location: US
+      priority: interactive
+      keyfile: /path/to/service-account-staging.json
