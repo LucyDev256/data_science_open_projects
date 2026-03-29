@@ -1,0 +1,61 @@
+{
+  "name": "men-health-products-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "CLOUD_SQL_PROXY_HOST",
+    "database.port": "5432",
+    "database.user": "debezium_user",
+    "database.password": "${file:/secrets/db-password:password}",
+    "database.dbname": "telehealth_men_prod",
+    "database.server.name": "telehealth_men",
+    "table.include.list": "public.products,public.inventory,public.prescriptions,public.orders,public.order_line_items,public.consultations,public.patients,public.customer_profiles",
+    
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_men_health_slot",
+    "publication.name": "debezium_publication",
+    
+    "topic.prefix": "telehealth.men",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": true,
+    "value.converter.schemas.enable": true,
+    
+    "transforms": "unwrap,addMetadata",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": false,
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.addMetadata.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+    "transforms.addMetadata.timestamp.field": "_kafka_timestamp",
+    
+    "snapshot.mode": "initial",
+    "snapshot.locking.mode": "minimal",
+    
+    "heartbeat.interval.ms": "10000",
+    "heartbeat.topics.prefix": "__debezium-heartbeat",
+    
+    "publication.autocreate.mode": "filtered",
+    "schema.refresh.mode": "columns_diff",
+    
+    "decimal.handling.mode": "double",
+    "time.precision.mode": "adaptive",
+    "binary.handling.mode": "bytes",
+    
+    "max.batch.size": "2048",
+    "max.queue.size": "8192",
+    "poll.interval.ms": "500",
+    
+    "database.ssl.mode": "require",
+    "database.sslrootcert": "/etc/ssl/certs/server-ca.pem",
+    "database.sslcert": "/etc/ssl/certs/client-cert.pem",
+    "database.sslkey": "/etc/ssl/certs/client-key.pem",
+    
+    "tombstones.on.delete": true,
+    
+    "errors.tolerance": "all",
+    "errors.log.enable": true,
+    "errors.log.include.messages": true,
+    
+    "producer.override.compression.type": "snappy",
+    "producer.override.max.request.size": "1048576"
+  }
+}

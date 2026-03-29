@@ -1,0 +1,83 @@
+name: 'telehealth_analytics'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project
+profile: 'telehealth'
+
+# These configurations specify where dbt should look for different types of files
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configuring models
+models:
+  telehealth_analytics:
+    # Bronze layer - raw data landing
+    bronze:
+      +materialized: table
+      +schema: bronze
+      +tags: ["bronze", "raw"]
+      
+    # Silver layer - cleaned and validated
+    silver:
+      +materialized: table
+      +schema: silver
+      +tags: ["silver", "curated"]
+      pharmaceutical:
+        +materialized: table
+      clinical:
+        +materialized: table
+      operational:
+        +materialized: incremental
+        +on_schema_change: "append_new_columns"
+      customer:
+        +materialized: table
+        
+    # Gold layer - analytics-ready
+    gold:
+      +materialized: table
+      +schema: gold
+      +tags: ["gold", "analytics"]
+      dimensions:
+        +materialized: table
+      facts:
+        +materialized: incremental
+        +on_schema_change: "append_new_columns"
+      aggregates:
+        +materialized: table
+        
+# Seeds configuration
+seeds:
+  telehealth_analytics:
+    +schema: reference_data
+
+# Snapshots configuration
+snapshots:
+  telehealth_analytics:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +updated_at: updated_at
+
+# Documentation
+docs-paths: ["docs"]
+
+# Variables
+vars:
+  # De-identification salt (should be stored securely in production)
+  deidentification_salt: "CHANGE_ME_IN_PRODUCTION"
+  
+  # Date ranges for incremental models
+  lookback_days: 7
+  
+  # Feature flags
+  enable_ml_features: true
+  enable_audit_logging: true

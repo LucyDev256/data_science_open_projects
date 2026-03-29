@@ -1,0 +1,124 @@
+{
+  "data_asset_type": "Dataset",
+  "expectation_suite_name": "silver_products_suite",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": {
+        "min_value": 100,
+        "max_value": 10000
+      },
+      "meta": {
+        "notes": "Products catalog should have between 100 and 10,000 products"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "product_id"
+      },
+      "meta": {
+        "notes": "Product ID must always be present"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "product_key"
+      },
+      "meta": {
+        "notes": "Product key must be unique across brands"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "sku"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "product_name"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "brand",
+        "value_set": ["mens", "womens"]
+      },
+      "meta": {
+        "notes": "Brand must be either mens or womens"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "base_price",
+        "min_value": 0,
+        "max_value": 10000
+      },
+      "meta": {
+        "notes": "Base price should be between $0 and $10,000"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "product_category"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "price_quality_flag",
+        "value_set": ["valid", "missing_price", "invalid_price"]
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "compliance_flag",
+        "value_set": ["ok", "review_required"]
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "base_price",
+        "type_": "NUMERIC"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "fda_approved",
+        "type_": "BOOL"
+      }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "requires_dea",
+        "type_": "BOOL"
+      }
+    },
+    {
+      "expectation_type": "expect_column_max_to_be_between",
+      "kwargs": {
+        "column": "processed_at",
+        "min_value": "2026-01-01",
+        "max_value": "2030-12-31",
+        "parse_strings_as_datetimes": true
+      },
+      "meta": {
+        "notes": "Processed timestamp should be within reasonable range"
+      }
+    }
+  ],
+  "meta": {
+    "great_expectations_version": "0.18.0",
+    "suite_description": "Validation suite for silver layer product data"
+  }
+}

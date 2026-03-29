@@ -1,0 +1,105 @@
+# Customer Data Dictionary
+
+## Dataset Description
+
+This dataset contains synthetic customer information for a retail business. The data is generated for educational purposes to demonstrate customer segmentation techniques.
+
+## Features
+
+### Customer_ID
+- **Type**: String
+- **Description**: Unique identifier for each customer
+- **Format**: CUST + 6-digit number (e.g., CUST000001)
+- **Example**: CUST000123
+
+### Age
+- **Type**: Integer
+- **Description**: Customer's age in years
+- **Range**: 18-70 years
+- **Example**: 35
+
+### Gender
+- **Type**: Categorical
+- **Description**: Customer's gender
+- **Categories**: Male, Female, Other
+- **Example**: Female
+
+### Annual_Income
+- **Type**: Integer
+- **Description**: Customer's annual income in USD
+- **Range**: $15,000 - $150,000
+- **Unit**: USD
+- **Example**: 65000
+
+### Spending_Score
+- **Type**: Float
+- **Description**: Score (1-100) assigned based on customer spending behavior and purchasing data
+- **Range**: 1.0 - 100.0
+- **Interpretation**: 
+  - Low (1-33): Low spending customers
+  - Medium (34-66): Moderate spending customers
+  - High (67-100): High spending customers
+- **Example**: 72.5
+
+### Purchase_Frequency
+- **Type**: Integer
+- **Description**: Average number of purchases per month
+- **Range**: 1-30 purchases/month
+- **Example**: 8
+
+### Preferred_Category
+- **Type**: Categorical
+- **Description**: Customer's most frequently purchased product category
+- **Categories**: 
+  - Electronics
+  - Clothing
+  - Home & Garden
+  - Sports
+  - Books
+  - Food & Beverage
+- **Example**: Electronics
+
+### Member_Since
+- **Type**: Date
+- **Description**: Date when customer joined the loyalty program
+- **Format**: YYYY-MM-DD
+- **Range**: Up to 5 years in the past from current date
+- **Example**: 2021-03-15
+
+## Data Generation
+
+The data is synthetically generated with the following characteristics:
+
+1. **Cluster Structure**: The data naturally contains 4 customer segments based on spending scores
+2. **Income Correlation**: Annual income has a positive correlation with age
+3. **Realistic Distributions**: All features follow realistic probability distributions
+4. **No Missing Values**: The synthetic dataset has complete information for all customers
+5. **Sample Size**: Default dataset contains 1,000 customers
+
+## Usage Notes
+
+- This is **synthetic data** created for educational purposes
+- The data is designed to demonstrate clear customer segments
+- Do not use this data for production or real business decisions
+- The data can be regenerated with different random seeds for variation
+
+## Data Quality
+
+- **Completeness**: 100% (no missing values)
+- **Consistency**: All values are within expected ranges
+- **Accuracy**: Synthetically accurate for educational purposes
+- **Timeliness**: Member_Since dates are realistic and up-to-date
+
+## Example Use Cases
+
+1. **Customer Segmentation**: Group customers into segments using clustering algorithms
+2. **Predictive Modeling**: Predict spending scores based on demographics
+3. **Business Intelligence**: Analyze customer behavior patterns
+4. **Visualization**: Create customer profiles and dashboards
+5. **Feature Engineering**: Practice creating derived features from basic attributes
+
+## Related Files
+
+- `generate_data.py`: Script to generate this dataset
+- `customer_data.csv`: The actual data file
+- `../src/segmentation.py`: Customer segmentation analysis script

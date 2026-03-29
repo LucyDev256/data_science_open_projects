@@ -1,0 +1,119 @@
+# Project Requirements
+
+## Dependencies
+
+### Infrastructure
+```bash
+# GCP CLI
+gcloud --version  # >= 400.0.0
+
+# Terraform
+terraform --version  # >= 1.0
+
+# Cloud SQL Proxy
+cloud_sql_proxy --version  # >= 2.0
+```
+
+### Application Dependencies
+
+#### Node.js (Prisma)
+```json
+{
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "prisma": "^5.0.0"
+  }
+}
+```
+
+#### Python (dbt, Airflow, Great Expectations)
+```txt
+# requirements.txt
+dbt-bigquery==1.7.0
+great-expectations==0.18.0
+apache-airflow==2.8.0
+apache-airflow-providers-google==10.0.0
+google-cloud-bigquery==3.12.0
+google-cloud-storage==2.10.0
+google-cloud-secret-manager==2.16.0
+psycopg2-binary==2.9.9
+pyyaml==6.0.1
+```
+
+## GCP Resources Required
+
+### Compute
+- Cloud SQL PostgreSQL (4 instances): db-custom-4-16384
+- Cloud Composer: medium environment (4 vCPUs)
+- Cloud Functions: For webhooks
+- GKE (optional): For Debezium if not using managed Kafka
+
+### Storage
+- Cloud Storage: ~500GB for data staging
+- BigQuery: ~2TB storage expected
+
+### Networking
+- VPC with Private Google Access
+- Cloud NAT for outbound
+- VPC Peering for PHI project
+
+### APIs to Enable
+- Cloud SQL Admin API
+- BigQuery API
+- Cloud Composer API
+- Secret Manager API
+- Cloud KMS API
+- Pub/Sub API
+- Cloud Functions API
+
+## External Services
+
+### Required
+- Confluent Cloud (Kafka): Standard tier
+- Slack (optional): For alerts
+- PagerDuty (optional): For on-call
+
+### Optional
+- Looker Studio: For BI dashboards
+- dbt Cloud: Alternative to self-hosted
+- Monte Carlo/Datafold: Data observability
+
+## Development Tools
+
+```bash
+# VS Code Extensions
+- Prisma
+- dbt Power User
+- HashiCorp Terraform
+- Python
+- YAML
+
+# CLI Tools
+brew install postgresql  # psql client
+brew install sqlc        # SQL code generation
+brew install pre-commit  # Git hooks
+```
+
+## Access Requirements
+
+### GCP IAM Roles
+- `roles/owner` (for initial setup)
+- `roles/cloudsql.admin`
+- `roles/bigquery.admin`
+- `roles/composer.admin`
+- `roles/secretmanager.admin`
+- `roles/cloudkms.admin`
+
+### Service Accounts Needed
+- `debezium-sa@project.iam.gserviceaccount.com`
+- `dbt-runner-sa@project.iam.gserviceaccount.com`
+- `airflow-sa@project.iam.gserviceaccount.com`
+- `bigquery-writer-sa@project.iam.gserviceaccount.com`
+
+## Minimum System Requirements (Local Development)
+
+- **OS**: macOS, Linux, or Windows with WSL2
+- **RAM**: 16GB minimum, 32GB recommended
+- **CPU**: 4 cores minimum
+- **Disk**: 50GB free space
+- **Network**: Stable internet connection (GCP access)

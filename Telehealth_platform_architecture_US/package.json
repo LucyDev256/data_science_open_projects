@@ -1,0 +1,25 @@
+{
+  "name": "telehealth-prisma",
+  "version": "1.0.0",
+  "description": "Prisma schemas for telehealth platform",
+  "scripts": {
+    "generate": "npm run generate:men && npm run generate:women && npm run generate:phi && npm run generate:shared",
+    "generate:men": "prisma generate --schema=prisma/men_health/schema.prisma",
+    "generate:women": "prisma generate --schema=prisma/women_health/schema.prisma",
+    "generate:phi": "prisma generate --schema=prisma/phi/schema.prisma",
+    "generate:shared": "prisma generate --schema=prisma/shared/schema.prisma",
+    "migrate:men": "prisma migrate deploy --schema=prisma/men_health/schema.prisma",
+    "migrate:women": "prisma migrate deploy --schema=prisma/women_health/schema.prisma",
+    "migrate:phi": "prisma migrate deploy --schema=prisma/phi/schema.prisma",
+    "migrate:shared": "prisma migrate deploy --schema=prisma/shared/schema.prisma",
+    "studio:men": "prisma studio --schema=prisma/men_health/schema.prisma",
+    "studio:women": "prisma studio --schema=prisma/women_health/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.7.0",
+    "typescript": "^5.3.0"
+  }
+}

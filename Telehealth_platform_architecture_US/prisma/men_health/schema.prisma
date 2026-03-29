@@ -1,0 +1,415 @@
+// Men's Health Brand - Operational Database Schema
+// Database: telehealth_men_prod
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/men-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MEN_DATABASE_URL")
+}
+
+// ============================================
+// PHARMACEUTICAL DATA
+// ============================================
+
+model Product {
+  id                String   @id @default(uuid())
+  sku               String   @unique
+  name              String
+  category          ProductCategory
+  description       String
+  activeIngredients Json // Array of active ingredients with dosages
+  dosageForm        String // tablet, injection, cream, etc.
+  strength          String
+  requiresDEA       Boolean  @default(false)
+  fdaApproved       Boolean  @default(true)
+  ndcCode           String? // National Drug Code
+  
+  // Pricing
+  basePrice         Decimal  @db.Decimal(10, 2)
+  subscriptionPrice Decimal? @db.Decimal(10, 2)
+  insuranceCoverable Boolean @default(false)
+  
+  // Inventory
+  inventory         InventoryItem[]
+  orderLineItems    OrderLineItem[]
+  prescriptions     Prescription[]
+  
+  // Interactions & Contraindications
+  drugInteractions  DrugInteraction[] @relation("ProductA")
+  contraindications Contraindication[]
+  
+  // Metadata
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isActive])
+  @@map("products")
+}
+
+enum ProductCategory {
+  GLP1_AGONIST      // Semaglutide, Tirzepatide
+  PEPTIDE           // BPC-157, TB-500
+  ERECTILE_DYSFUNCTION // Sildenafil, Tadalafil
+  HAIR_GROWTH       // Finasteride, Minoxidil
+  STAMINA           // Performance supplements
+  TESTOSTERONE      // TRT
+  OTHER
+}
+
+model InventoryItem {
+  id                String   @id @default(uuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  
+  fulfillmentPartner String  // Compounding pharmacy ID
+  lotNumber         String
+  expirationDate    DateTime
+  quantityAvailable Int
+  quantityReserved  Int      @default(0)
+  quantityOnHold    Int      @default(0)
+  
+  // Location
+  warehouseLocation String
+  binLocation       String?
+  
+  // Tracking
+  receivedDate      DateTime
+  lastAuditDate     DateTime?
+  
+  // Real-time updates trigger CDC
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([productId, lotNumber])
+  @@index([quantityAvailable])
+  @@index([expirationDate])
+  @@map("inventory")
+}
+
+model DrugInteraction {
+  id              String   @id @default(uuid())
+  productAId      String
+  productBId      String
+  productA        Product  @relation("ProductA", fields: [productAId], references: [id])
+  severity        InteractionSeverity
+  description     String
+  clinicalEffect  String
+  recommendation  String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([productAId, productBId])
+  @@map("drug_interactions")
+}
+
+enum InteractionSeverity {
+  MINOR
+  MODERATE
+  MAJOR
+  CONTRAINDICATED
+}
+
+model Contraindication {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  condition   String // ICD-10 code or condition name
+  description String
+  severity    String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([productId])
+  @@map("contraindications")
+}
+
+// ============================================
+// HEALTHCARE/CLINICAL DATA (ANONYMIZED)
+// ============================================
+
+model Patient {
+  id                String   @id @default(uuid()) // This is patient_uuid (anonymized)
+  // NO PHI HERE - all PII is in phi database
+  
+  // Anonymous identifiers only
+  brand             String   @default("mens")
+  registrationDate  DateTime @default(now())
+  isActive          Boolean  @default(true)
+  
+  // Relationships
+  consultations     Consultation[]
+  prescriptions     Prescription[]
+  orders            Order[]
+  customerProfile   CustomerProfile?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([brand])
+  @@index([isActive])
+  @@map("patients")
+}
+
+model Consultation {
+  id                String   @id @default(uuid())
+  patientId         String
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  providerId        String // References shared.providers
+  
+  consultationType  ConsultationType
+  status            ConsultationStatus
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  
+  // Chief complaint
+  chiefComplaint    String
+  productInterest   String[] // Product categories of interest
+  
+  // Clinical assessment (stored in PHI DB, reference only)
+  assessmentId      String? // Links to phi.clinical_assessments
+  
+  // Outcomes
+  prescriptions     Prescription[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([providerId])
+  @@index([status])
+  @@map("consultations")
+}
+
+enum ConsultationType {
+  ASYNC_QUESTIONNAIRE
+  VIDEO_CALL
+  FOLLOW_UP
+  REFILL_REVIEW
+}
+
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Prescription {
+  id                  String   @id @default(uuid())
+  patientId           String
+  patient             Patient  @relation(fields: [patientId], references: [id])
+  consultationId      String?
+  consultation        Consultation? @relation(fields: [consultationId], references: [id])
+  providerId          String // References shared.providers
+  
+  productId           String
+  product             Product  @relation(fields: [productId], references: [id])
+  
+  // Prescription details (clinical details in PHI DB)
+  dosage              String
+  frequency           String
+  duration            String
+  quantity            Int
+  refillsAllowed      Int      @default(0)
+  refillsRemaining    Int      @default(0)
+  
+  // Status tracking
+  status              PrescriptionStatus
+  approvedAt          DateTime?
+  approvedBy          String? // Provider ID
+  filledAt            DateTime?
+  filledBy            String? // Pharmacy partner ID
+  
+  // Auto-refill
+  autoRefillEnabled   Boolean  @default(false)
+  nextRefillDate      DateTime?
+  
+  // Orders
+  orders              Order[]
+  
+  // Audit trail
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([status])
+  @@index([nextRefillDate])
+  @@map("prescriptions")
+}
+
+enum PrescriptionStatus {
+  PENDING_REVIEW
+  APPROVED
+  DENIED
+  FILLED
+  SHIPPED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+// ============================================
+// OPERATIONAL DATA
+// ============================================
+
+model Order {
+  id                String   @id @default(uuid())
+  orderNumber       String   @unique
+  patientId         String
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  
+  // Order type
+  orderType         OrderType
+  prescriptionId    String?
+  prescription      Prescription? @relation(fields: [prescriptionId], references: [id])
+  
+  // Line items
+  lineItems         OrderLineItem[]
+  
+  // Pricing
+  subtotal          Decimal  @db.Decimal(10, 2)
+  tax               Decimal  @db.Decimal(10, 2)
+  shipping          Decimal  @db.Decimal(10, 2)
+  discount          Decimal  @db.Decimal(10, 2) @default(0)
+  total             Decimal  @db.Decimal(10, 2)
+  
+  // Payment (PCI data in Stripe, not here)
+  paymentIntentId   String? // Stripe payment intent ID
+  paymentStatus     PaymentStatus
+  
+  // Fulfillment
+  status            OrderStatus
+  fulfillmentPartner String?
+  shippingTrackingNumber String?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+enum OrderType {
+  PRESCRIPTION
+  ONE_TIME_PURCHASE
+  SUBSCRIPTION
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+model OrderLineItem {
+  id          String  @id @default(uuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+  subtotal    Decimal @db.Decimal(10, 2)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([orderId])
+  @@map("order_line_items")
+}
+
+// ============================================
+// CUSTOMER/MARKETING DATA (NO PHI)
+// ============================================
+
+model CustomerProfile {
+  id                String   @id @default(uuid())
+  patientId         String   @unique
+  patient           Patient  @relation(fields: [patientId], references: [id])
+  
+  // Marketing
+  acquisitionChannel String?
+  acquisitionCampaign String?
+  utmSource         String?
+  utmMedium         String?
+  utmCampaign       String?
+  
+  // Segmentation
+  segment           String[] // Tags like "high_value", "at_risk", etc.
+  lifetimeValue     Decimal  @db.Decimal(10, 2) @default(0)
+  orderCount        Int      @default(0)
+  
+  // Subscription
+  isSubscriber      Boolean  @default(false)
+  subscriptionTier  String?
+  subscriptionStart DateTime?
+  subscriptionEnd   DateTime?
+  
+  // Engagement
+  lastLoginAt       DateTime?
+  lastOrderAt       DateTime?
+  emailOptIn        Boolean  @default(true)
+  smsOptIn          Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([segment])
+  @@index([isSubscriber])
+  @@map("customer_profiles")
+}
+
+// ============================================
+// AUDIT LOGGING (TEMPORAL)
+// ============================================
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  tableName     String
+  recordId      String
+  action        AuditAction
+  userId        String? // User who made the change
+  changedData   Json // Before/after snapshot
+  ipAddress     String?
+  userAgent     String?
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([tableName, recordId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  INSERT
+  UPDATE
+  DELETE
+}

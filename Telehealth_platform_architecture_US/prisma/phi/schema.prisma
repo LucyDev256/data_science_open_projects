@@ -1,0 +1,406 @@
+// PHI Database Schema - HIPAA Protected Health Information
+// Database: telehealth_phi_prod
+// CRITICAL: This database must be in a separate GCP project with stricter IAM controls
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/phi-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PHI_DATABASE_URL")
+}
+
+// ============================================
+// PATIENT DEMOGRAPHICS (PHI)
+// ============================================
+
+model PatientDemographics {
+  id                String   @id @default(uuid())
+  patientUuid       String   @unique // Links to operational DB patient.id
+  
+  // Personal Information
+  firstName         String
+  middleName        String?
+  lastName          String
+  dateOfBirth       DateTime
+  ssn               String? @db.Char(11) // Encrypted at column level
+  
+  // Contact Information
+  email             String   @unique
+  phoneNumber       String
+  phoneNumberAlt    String?
+  
+  // Address
+  addressLine1      String
+  addressLine2      String?
+  city              String
+  state             String   @db.Char(2)
+  zipCode           String
+  country           String   @default("US")
+  
+  // Demographics
+  biologicalSex     BiologicalSex
+  gender            String?
+  pronouns          String?
+  race              String?
+  ethnicity         String?
+  preferredLanguage String   @default("en")
+  
+  // Emergency Contact
+  emergencyContactName   String?
+  emergencyContactPhone  String?
+  emergencyContactRelation String?
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relationships
+  medicalHistory    MedicalHistory?
+  clinicalAssessments ClinicalAssessment[]
+  prescriptionDetails PrescriptionDetails[]
+  labResults        LabResult[]
+  consentForms      ConsentForm[]
+  adverseEvents     AdverseEvent[]
+  
+  @@index([lastName, firstName])
+  @@index([email])
+  @@map("patient_demographics")
+}
+
+enum BiologicalSex {
+  MALE
+  FEMALE
+}
+
+// ============================================
+// MEDICAL HISTORY
+// ============================================
+
+model MedicalHistory {
+  id                String   @id @default(uuid())
+  patientUuid       String   @unique
+  demographics      PatientDemographics @relation(fields: [patientUuid], references: [patientUuid])
+  
+  // Current Conditions (ICD-10 codes)
+  chronicConditions Json // Array of {icd10Code, description, diagnosedDate}
+  
+  // Medications
+  currentMedications Json // Array of {name, dosage, frequency, startDate}
+  
+  // Allergies
+  drugAllergies     Json // Array of {allergen, reaction, severity}
+  foodAllergies     Json?
+  
+  // Surgical History
+  surgeries         Json? // Array of {procedure, date, surgeon, hospital}
+  
+  // Family History
+  familyHistory     Json? // Array of {relation, condition}
+  
+  // Social History
+  smokingStatus     SmokingStatus?
+  alcoholUse        String?
+  substanceUse      String?
+  exerciseFrequency String?
+  
+  // Vital Signs (most recent)
+  height            Decimal? @db.Decimal(5, 2) // in cm
+  weight            Decimal? @db.Decimal(5, 2) // in kg
+  bloodPressure     String? // "120/80"
+  lastVitalsDate    DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("medical_history")
+}
+
+enum SmokingStatus {
+  NEVER
+  FORMER
+  CURRENT
+}
+
+// ============================================
+// CLINICAL ASSESSMENTS
+// ============================================
+
+model ClinicalAssessment {
+  id                String   @id @default(uuid())
+  patientUuid       String
+  demographics      PatientDemographics @relation(fields: [patientUuid], references: [patientUuid])
+  
+  consultationId    String // Links to operational DB consultation.id
+  providerId        String
+  
+  // Assessment
+  assessmentDate    DateTime @default(now())
+  chiefComplaint    String
+  historyOfPresent  String // History of present illness
+  reviewOfSystems   Json? // Structured review of systems
+  
+  // Physical Exam (if applicable)
+  physicalExam      String?
+  vitalSigns        Json? // {bp, pulse, temp, resp_rate, o2_sat}
+  
+  // Diagnosis
+  diagnosis         Json // Array of {icd10Code, description, isPrimary}
+  
+  // Treatment Plan
+  treatmentPlan     String
+  patientEducation  String?
+  
+  // Follow-up
+  followUpRequired  Boolean  @default(false)
+  followUpDate      DateTime?
+  followUpNotes     String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientUuid])
+  @@index([consultationId])
+  @@map("clinical_assessments")
+}
+
+// ============================================
+// PRESCRIPTION DETAILS (PHI)
+// ============================================
+
+model PrescriptionDetails {
+  id                String   @id @default(uuid())
+  prescriptionId    String   @unique // Links to operational DB prescription.id
+  patientUuid       String
+  demographics      PatientDemographics @relation(fields: [patientUuid], references: [patientUuid])
+  
+  // Clinical justification
+  indication        String
+  clinicalNotes     String?
+  contraindications String?
+  
+  // Instructions
+  patientInstructions String
+  pharmacistNotes   String?
+  
+  // Monitoring
+  requiredMonitoring String?
+  labTestsRequired  String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientUuid])
+  @@map("prescription_details")
+}
+
+// ============================================
+// LAB RESULTS
+// ============================================
+
+model LabResult {
+  id                String   @id @default(uuid())
+  patientUuid       String
+  demographics      PatientDemographics @relation(fields: [patientUuid], references: [patientUuid])
+  
+  orderId           String   @unique // External lab order ID
+  labProvider       String // Quest, LabCorp, etc.
+  
+  testDate          DateTime
+  receivedDate      DateTime @default(now())
+  
+  // Test Details
+  testName          String
+  loincCode         String? // LOINC code for standardization
+  testCategory      String // Chemistry, Hematology, etc.
+  
+  // Results
+  results           Json // Array of {test, value, unit, referenceRange, flag}
+  
+  // Provider Review
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  providerNotes     String?
+  
+  // Patient Notification
+  patientNotified   Boolean  @default(false)
+  notifiedAt        DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientUuid])
+  @@index([testDate])
+  @@map("lab_results")
+}
+
+// ============================================
+// ADVERSE EVENTS
+// ============================================
+
+model AdverseEvent {
+  id                String   @id @default(uuid())
+  patientUuid       String
+  demographics      PatientDemographics @relation(fields: [patientUuid], references: [patientUuid])
+  
+  prescriptionId    String? // If related to a prescription
+  productId         String? // Product involved
+  
+  // Event Details
+  eventDate         DateTime
+  reportedDate      DateTime @default(now())
+  reportedBy        String // patient, provider, pharmacy
+  
+  eventDescription  String
+  severity          AdverseEventSeverity
+  outcome           AdverseEventOutcome
+  
+  // Clinical Assessment
+  providerAssessment String?
+  actionTaken       String
+  
+  // Reporting
+  fdaReported       Boolean  @default(false)
+  fdaReportNumber   String?
+  fdaReportDate     DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientUuid])
+  @@index([severity])
+  @@map("adverse_events")
+}
+
+enum AdverseEventSeverity {
+  MILD
+  MODERATE
+  SEVERE
+  LIFE_THREATENING
+  DEATH
+}
+
+enum AdverseEventOutcome {
+  RECOVERED
+  RECOVERING
+  NOT_RECOVERED
+  UNKNOWN
+  DEATH
+}
+
+// ============================================
+// CONSENT FORMS
+// ============================================
+
+model ConsentForm {
+  id                String   @id @default(uuid())
+  patientUuid       String
+  demographics      PatientDemographics @relation(fields: [patientUuid], references: [patientUuid])
+  
+  consentType       ConsentType
+  consentVersion    String // Version of the consent form
+  
+  // Consent Details
+  consentText       String // Full text or reference to stored document
+  consentedAt       DateTime @default(now())
+  ipAddress         String
+  userAgent         String?
+  
+  // Electronic Signature
+  signatureMethod   SignatureMethod
+  signatureData     String? // Encrypted signature data
+  
+  // Status
+  isActive          Boolean  @default(true)
+  revokedAt         DateTime?
+  revokedReason     String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([patientUuid])
+  @@index([consentType])
+  @@map("consent_forms")
+}
+
+enum ConsentType {
+  HIPAA_AUTHORIZATION
+  TELEHEALTH_CONSENT
+  TREATMENT_CONSENT
+  PRESCRIPTION_CONSENT
+  MARKETING_OPT_IN
+  DATA_SHARING
+  TELEMEDICINE_INFORMED_CONSENT
+}
+
+enum SignatureMethod {
+  TYPED_NAME
+  CLICK_AGREEMENT
+  ELECTRONIC_SIGNATURE
+  BIOMETRIC
+}
+
+// ============================================
+// PHI ACCESS AUDIT LOG
+// ============================================
+
+model PhiAccessLog {
+  id                String   @id @default(uuid())
+  
+  // Who accessed
+  userId            String
+  userRole          String
+  userName          String
+  
+  // What was accessed
+  patientUuid       String
+  tableName         String
+  recordId          String?
+  accessType        AccessType
+  
+  // Why
+  accessReason      String
+  accessJustification String?
+  
+  // When & Where
+  accessedAt        DateTime @default(now())
+  ipAddress         String
+  userAgent         String?
+  sessionId         String
+  
+  // Security Context
+  isBreakGlassAccess Boolean @default(false)
+  mfaVerified       Boolean  @default(false)
+  
+  @@index([patientUuid])
+  @@index([userId])
+  @@index([accessedAt])
+  @@map("phi_access_logs")
+}
+
+enum AccessType {
+  READ
+  WRITE
+  DELETE
+  EXPORT
+}
+
+// ============================================
+// PATIENT UUID TOKEN VAULT
+// Secure mapping for de-identification
+// ============================================
+
+model TokenVault {
+  id                String   @id @default(uuid())
+  patientUuid       String   @unique
+  tokenHash         String   @unique // One-way hash for analytics
+  
+  // Metadata
+  createdAt         DateTime @default(now())
+  lastAccessedAt    DateTime @default(now())
+  
+  @@index([tokenHash])
+  @@map("token_vault")
+}
