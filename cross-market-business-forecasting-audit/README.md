@@ -1,5 +1,7 @@
 # Cross-Market Business Forecasting Audit
 
+[![Cross-market project checks](https://github.com/LucyDev256/data_science_open_projects/actions/workflows/cross-market-project-checks.yml/badge.svg)](https://github.com/LucyDev256/data_science_open_projects/actions/workflows/cross-market-project-checks.yml)
+
 An end-to-end portfolio case study combining customer revenue forecasting,
 behavioural segmentation, promotion-effect estimation, price sensitivity, and
 BigQuery customer-order analysis.
